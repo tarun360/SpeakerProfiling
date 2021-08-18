@@ -1,6 +1,8 @@
 # Commands
 
-python train_timit.py --n_workers=2 --data_path='/notebooks/dataset/wav_data' --speaker_csv_path='/notebooks/SpeakerProfiling/Dataset/data_info_height_age.csv' --noise_dataset_path='/notebooks/noise_dataset'
+```bash
+python train_timit.py --n_workers=0 --data_path='/notebooks/dataset/wav_data' --speaker_csv_path='/notebooks/SpeakerProfiling/Dataset/data_info_height_age.csv' --noise_dataset_path='/notebooks/noise_dataset'
+```
 
 # Speaker Profiling
 

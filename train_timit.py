@@ -107,7 +107,8 @@ if __name__ == "__main__":
 
     model = LightningModel(vars(hparams))
 
-    checkpoint_callback = ModelCheckpoint(
+    model_checkpoint_callback = ModelCheckpoint(
+        dirpath='checkpoints',
         monitor='val/loss', 
         mode='min',
         verbose=1)
@@ -124,7 +125,8 @@ if __name__ == "__main__":
                 patience=20,
                 verbose=True,
                 mode='min'
-                )
+                ),
+            model_checkpoint_callback
         ],
         logger=logger,
         resume_from_checkpoint=hparams.model_checkpoint,
@@ -133,6 +135,6 @@ if __name__ == "__main__":
 
     trainer.fit(model, train_dataloader=trainloader, val_dataloaders=valloader)
 
-    # print('\n\nCompleted Training...\nTesting the model with checkpoint -', checkpoint_callback.best_model_path)
-    # model = LightningModel.load_from_checkpoint(checkpoint_callback.best_model_path)
-    # trainer.test(model, test_dataloaders=testloader)
+    print('\n\nCompleted Training...\nTesting the model with checkpoint -', model_checkpoint_callback.best_model_path)
+    model = LightningModel.load_from_checkpoint(model_checkpoint_callback.best_model_path)
+    trainer.test(model, test_dataloaders=testloader)
