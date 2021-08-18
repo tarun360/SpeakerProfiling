@@ -116,7 +116,7 @@ if __name__ == "__main__":
         fast_dev_run=hparams.dev, 
         gpus=hparams.gpu, 
         max_epochs=hparams.epochs, 
-        checkpoint_callback=checkpoint_callback,
+        checkpoint_callback=True,
         callbacks=[
             EarlyStopping(
                 monitor='val/loss',

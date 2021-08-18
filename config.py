@@ -11,7 +11,7 @@ class TIMITConfig(object):
     timit_wav_len = 3 * 16000
     # 16000 * 2
 
-    batch_size = 150
+    batch_size = 32
     epochs = 200
     
     # loss = alpha * height_loss + beta * age_loss + gamma * gender_loss
