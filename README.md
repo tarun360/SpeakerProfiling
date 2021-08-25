@@ -4,6 +4,10 @@
 python train_timit.py --n_workers=0 --data_path='/notebooks/dataset/wav_data' --speaker_csv_path='/notebooks/SpeakerProfiling/Dataset/data_info_height_age.csv' --noise_dataset_path='/notebooks/noise_dataset'
 ```
 
+```bash
+python train_timit.py --n_workers=0 --data_path=/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_data/ --speaker_csv_path=/notebooks/SpeakerProfiling/Dataset/data_info_height_age.csv
+```
+
 # Speaker Profiling
 
 This Repository contains the code for estimating the Age, Height and Gender of a speaker with their speech signal. The repository experiments with both TIMIT and NISP Dataset.
