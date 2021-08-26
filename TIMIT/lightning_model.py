@@ -9,11 +9,10 @@ from pytorch_lightning.metrics.regression import MeanSquaredError  as MSE
 from pytorch_lightning.metrics.classification import Accuracy
 
 import pandas as pd
-import wavencoder
 import torch_optimizer as optim
 
 
-from Model.models import Wav2VecLSTM, SpectralMultiScale, SpectralCNNLSTM, Wav2VecTransformer
+from Model.models import Wav2VecTransformer
 
 class RMSELoss(nn.Module):
     def __init__(self):
@@ -30,16 +29,9 @@ class LightningModel(pl.LightningModule):
         self.save_hyperparameters()
         self.models = {
             'wav2vecTransformer': Wav2VecTransformer,
-            'wav2vecLSTMAttn': Wav2VecLSTM,
-            'spectralCNNLSTM' : SpectralCNNLSTM,
-            'MultiScale' : SpectralMultiScale,
-
         }
         
-        if(HPARAMS['model_type']=='wav2vecTransformer'):
-            self.model = self.models[HPARAMS['model_type']](num_layers=1)
-        else:
-            self.model = self.models[HPARAMS['model_type']](HPARAMS['hidden_size'])
+        self.model = self.models[HPARAMS['model_type']](num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'])
             
         self.classification_criterion = MSE()
         self.regression_criterion = MSE()
