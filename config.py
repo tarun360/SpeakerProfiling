@@ -20,18 +20,18 @@ class TIMITConfig(object):
     gamma = 1
 
     # training type - AHG/H
-    training_type = 'H'
+    training_type = 'AHG'
 
     # data type - raw/spectral
-    data_type = 'spectral' 
+    data_type = 'raw' 
 
     # model type
     ## AHG 
     # wav2vecLSTMAttn/spectralCNNLSTM/MultiScale
     
     ## H
-    # wav2vecLSTMAttn/MultiScale/LSTMAttn
-    model_type = 'MultiScale'
+    # wav2vecLSTMAttn/MultiScale/LSTMAttn/wav2vecTransformer
+    model_type = 'wav2vecTransformer'
 
     # hidden dimension of LSTM and Dense Layers
     hidden_size = 128

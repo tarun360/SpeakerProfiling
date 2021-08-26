@@ -1,9 +1,36 @@
 import torch
 import torch.nn as nn
 import wavencoder
-# from transformers import Wav2Vec2Model
-# torch.use_deterministic_algorithms(True)
+from IPython import embed
 
+class Wav2VecTransformer(nn.Module):
+    def __init__(self, num_layers=6, feature_dim=768):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', 'wav2vec2')
+        for param in self.upstream.parameters():
+            param.requires_grad = False
+
+        encoder_layer = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.transformer_encoder = torch.nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        
+        self.height_regressor = nn.Linear(feature_dim, 1)
+        self.age_regressor = nn.Linear(feature_dim, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(feature_dim, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        x = [wav for wav in x.squeeze(1)]
+        x = self.upstream(x)['last_hidden_state']
+        output = self.transformer_encoder(x)
+        output_averaged = torch.mean(output, dim=1)
+        height = self.height_regressor(output_averaged)
+        age = self.age_regressor(output_averaged)
+        gender = self.gender_classifier(output_averaged)
+        return height, age, gender
+
+    
 class Wav2VecLSTM(nn.Module):
     def __init__(self, lstm_h, lstm_inp=512):
         super().__init__()
@@ -24,9 +51,11 @@ class Wav2VecLSTM(nn.Module):
         )
 
     def forward(self, x):
+        embed()
         x = self.encoder(x)
         output, (hidden, _) = self.lstm(x.transpose(1,2))
         attn_output = self.attention(output)
+        embed()
         height = self.height_regressor(attn_output)
         age = self.age_regressor(attn_output)
         gender = self.gender_classifier(attn_output)
