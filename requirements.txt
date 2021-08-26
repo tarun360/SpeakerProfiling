@@ -4,3 +4,4 @@ wavencoder
 pytorch-lightning>=1.1.5
 sklearn
 torch-optimizer
+s3prl
