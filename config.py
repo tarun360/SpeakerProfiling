@@ -34,7 +34,7 @@ class TIMITConfig(object):
     model_type = 'wav2vecTransformer'
 
     # number of layers in encoder (transformers)
-    num_layers = 1
+    num_layers = 6
 
     # feature dimension of upstream model. For example, incase of wav2vec2, feature_dim = 768
     feature_dim = 768
