@@ -11,7 +11,7 @@ import pandas as pd
 import torch_optimizer as optim
 
 
-from Model.models import Wav2VecTransformer
+from Model.models import UpstreamTransformer
 from Model.utils import RMSELoss
 
 class LightningModel(pl.LightningModule):
@@ -20,10 +20,9 @@ class LightningModel(pl.LightningModule):
         # HPARAMS
         self.save_hyperparameters()
         self.models = {
-            'wav2vecTransformer': Wav2VecTransformer,
+            'UpstreamTransformer': UpstreamTransformer,
         }
-        self.model = self.models[HPARAMS['model_type']](num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'])
-
+        self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'])
         self.regression_criterion = MSE()
         self.mae_criterion = MAE()
         self.rmse_criterion = RMSELoss()

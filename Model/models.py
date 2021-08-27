@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 
-class Wav2VecTransformer(nn.Module):
-    def __init__(self, num_layers=6, feature_dim=768):
+class UpstreamTransformer(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768):
         super().__init__()
-        self.upstream = torch.hub.load('s3prl/s3prl', 'wav2vec2')
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
         for param in self.upstream.parameters():
             param.requires_grad = False
 
@@ -30,7 +30,7 @@ class Wav2VecTransformer(nn.Module):
 
 # height only models
 
-class Wav2VecTransformerH(nn.Module):
+class UpstreamTransformerH(nn.Module):
     def __init__(self, num_layers=6, feature_dim=768):
         super().__init__()
         self.upstream = torch.hub.load('s3prl/s3prl', 'wav2vec2')

@@ -31,7 +31,11 @@ class TIMITConfig(object):
     
     ## H
     # wav2vecTransformer
-    model_type = 'wav2vecTransformer'
+    model_type = 'UpstreamTransformer'
+    
+    # upstream model to be loaded from s3prl. Some of the upstream models are: wav2vec2, TERA, mockingjay etc.
+    #See the available models here: https://github.com/s3prl/s3prl/blob/master/s3prl/upstream/README.md
+    upstream_model = 'wav2vec2'
 
     # number of layers in encoder (transformers)
     num_layers = 6
@@ -50,6 +54,6 @@ class TIMITConfig(object):
     noise_dataset_path = '/home/shangeth/noise_dataset'
 
     # LR of optimizer
-    lr = 1e-3
+    lr = 1e-4
 
     run_name = data_type + '_' + training_type + '_' + model_type
