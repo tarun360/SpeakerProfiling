@@ -39,7 +39,7 @@ python TIMIT/prepare_timit_data.py --path='path to timit data folder'
 ```
 
 ### Update Config and Logger
-Update the config.py file to update the batch_size, gpus, lr, etc and change the preferred logger in train_.py files
+Update the config.py file to update the upstream model, batch_size, gpus, lr, etc and change the preferred logger in train_.py files
 
 ### Training
 ```bash
