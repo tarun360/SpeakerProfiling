@@ -68,10 +68,10 @@ python test_timit.py --data_path=/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_d
 | Model                                    | lr     | Height RMSE |        | Height MAE |        | Age RMSE |        | Age MAE |        | Epochs | Optimiser | batch size | Multitask    |
 | ---------------------------------------- | ------ | ----------- | ------ | ---------- | ------ | -------- | ------ | ------- | ------ | ------ | --------- | ---------- | ------------ |
 |                                          |        | Male        | Female | Male       | Female | Male     | Female | Male    | Female |        |           |            |              |
-| wav2vec2(frozen)+encoder-6L (multitastk) | 0.1    | 7.82        | 11.7   | 6.18       | 10.22  | 8.26     | 9.25   | 5.43    | 6.29   | 25     | Adam      | 32         | A,H,G, 1,1,1 |
-| wav2vec2(frozen)+encoder-6L (multitastk) | 0.01   | 7.87        | 11.57  | 6.24       | 10.09  | 8.06     | 9.11   | 5.76    | 6.48   | 25     | Adam      | 32         | A,H,G, 1,1,1 |
-| wav2vec2(frozen)+encoder-6L (multitastk) | 0.001  | 7.72        | 11.95  | 6.07       | 10.46  | 8.28     | 9.26   | 5.42    | 6.28   | 25     | Adam      | 32         | A,H,G, 1,1,1 |
-| wav2vec2(frozen)+encoder-6L (multitastk) | 0.0001 | 7.5         | 7.13   | 5.8        | 5.58   | 7.02     | 7.55   | 4.58    | 5.02   | 25     | Adam      | 32         | A,H,G, 1,1,1 |
+| wav2vec2(frozen)+encoder-6L (multitask) | 0.1    | 7.82        | 11.7   | 6.18       | 10.22  | 8.26     | 9.25   | 5.43    | 6.29   | 25     | Adam      | 32         | A,H,G, 1,1,1 |
+| wav2vec2(frozen)+encoder-6L (multitask) | 0.01   | 7.87        | 11.57  | 6.24       | 10.09  | 8.06     | 9.11   | 5.76    | 6.48   | 25     | Adam      | 32         | A,H,G, 1,1,1 |
+| wav2vec2(frozen)+encoder-6L (multitask) | 0.001  | 7.72        | 11.95  | 6.07       | 10.46  | 8.28     | 9.26   | 5.42    | 6.28   | 25     | Adam      | 32         | A,H,G, 1,1,1 |
+| wav2vec2(frozen)+encoder-6L (multitask) | 0.0001 | 7.5         | 7.13   | 5.8        | 5.58   | 7.02     | 7.55   | 4.58    | 5.02   | 25     | Adam      | 32         | A,H,G, 1,1,1 |
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
