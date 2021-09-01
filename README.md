@@ -63,7 +63,7 @@ python test_timit.py --data_path=/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_d
 
 ### Results
 
-Multitask learning: height & age estimation and gender classification.
+#### Multitask learning: height & age estimation and gender classification:
 
 | Model                                    | lr     | Height RMSE |        | Height MAE |        | Age RMSE |        | Age MAE |        | Epochs | Optimiser | batch size | Multitask    |
 | ---------------------------------------- | ------ | ----------- | ------ | ---------- | ------ | -------- | ------ | ------- | ------ | ------ | --------- | ---------- | ------------ |
@@ -73,7 +73,7 @@ Multitask learning: height & age estimation and gender classification.
 | wav2vec2(frozen)+encoder-6L (multitastk) | 0.001  | 7.72        | 11.95  | 6.07       | 10.46  | 8.28     | 9.26   | 5.42    | 6.28   | 25     | Adam      | 32         | A,H,G, 1,1,1 |
 | wav2vec2(frozen)+encoder-6L (multitastk) | 0.0001 | 7.5         | 7.13   | 5.8        | 5.58   | 7.02     | 7.55   | 4.58    | 5.02   | 25     | Adam      | 32         | A,H,G, 1,1,1 |
 
-Only height estimation.
+#### Only height estimation:
 
 | Model                      | lr     | Height RMSE |       | Height MAE |       | Age RMSE |      | Age MAE |      | Epochs | Optimiser | batch size |
 | -------------------------- | ------ | ----------- | ----- | ---------- | ----- | -------- | ---- | ------- | ---- | ------ | --------- | ---------- |
