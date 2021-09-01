@@ -139,5 +139,5 @@ if __name__ == "__main__":
     trainer.fit(model, train_dataloader=trainloader, val_dataloaders=valloader)
 
     print('\n\nCompleted Training...\nTesting the model with checkpoint -', model_checkpoint_callback.best_model_path)
-    model = LightningModel.load_from_checkpoint(model_checkpoint_callback.best_model_path)
-    trainer.test(model, test_dataloaders=testloader)
+    #model = LightningModel.load_from_checkpoint(model_checkpoint_callback.best_model_path)
+    #trainer.test(model, test_dataloaders=testloader)

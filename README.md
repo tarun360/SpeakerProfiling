@@ -63,7 +63,7 @@ python test_timit.py --data_path=/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_d
 
 ### Results
 
-#### Multitask learning: height & age estimation and gender classification:
+#### Multitask learning: height & age estimation and gender classification on TIMIT dataset:
 
 | Model                                    | lr     | Height RMSE |        | Height MAE |        | Age RMSE |        | Age MAE |        | Epochs | Optimiser | batch size | Multitask    |
 | ---------------------------------------- | ------ | ----------- | ------ | ---------- | ------ | -------- | ------ | ------- | ------ | ------ | --------- | ---------- | ------------ |
