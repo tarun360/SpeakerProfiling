@@ -40,7 +40,10 @@ class TIMITConfig(object):
     # number of layers in encoder (transformers)
     num_layers = 6
 
-    # feature dimension of upstream model. For example, incase of wav2vec2, feature_dim = 768
+    # feature dimension of upstream model. For example, 
+    # For wav2vec2, feature_dim = 768
+    # For npc, feature_dim = 512
+    # For tera, feature_dim = 768
     feature_dim = 768
 
     # No of GPUs for training and no of workers for datalaoders
