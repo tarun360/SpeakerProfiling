@@ -112,8 +112,9 @@ if __name__ == "__main__":
             amae = mean_absolute_error(age_true[female_idx], age_pred[female_idx])
             armse = mean_squared_error(age_true[female_idx], age_pred[female_idx], squared=False)
             print(hrmse, hmae, armse, amae)
-
-#             print(accuracy_score(gender_true, gender_pred))
+            
+            gender_pred_ = [int(pred[0][0] == True) for pred in gender_pred]
+            print(accuracy_score(gender_true, gender_pred_))
         
         else:
             model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
