@@ -22,6 +22,7 @@ class TIMITDataset(Dataset):
         self.wav_len = hparams.timit_wav_len
         self.noise_dataset_path = hparams.noise_dataset_path
         self.data_type = hparams.data_type
+        self.speed_change = hparams.speed_change
 
         self.speaker_list = self.df.loc[:, 'ID'].values.tolist()
         self.df.set_index('ID', inplace=True)
@@ -32,6 +33,11 @@ class TIMITDataset(Dataset):
                 wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='random', crop_position='random'),
                 wavencoder.transforms.AdditiveNoise(self.noise_dataset_path, p=0.5),
                 wavencoder.transforms.Clipping(p=0.5),
+                ])
+        elif self.speed_change:
+            self.train_transform = wavencoder.transforms.Compose([
+                wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='left', crop_position='random'),
+                wavencoder.transforms.SpeedChange(factor_range=(-0.1, 0.1), p=0.5),
                 ])
         else:
             self.train_transform = wavencoder.transforms.Compose([
