@@ -12,7 +12,7 @@ import pandas as pd
 import torch_optimizer as optim
 
 
-from Model.models import UpstreamTransformer
+from Model.models import UpstreamTransformer, UpstreamConformer
 
 class RMSELoss(nn.Module):
     def __init__(self):
@@ -29,6 +29,7 @@ class LightningModel(pl.LightningModule):
         self.save_hyperparameters()
         self.models = {
             'UpstreamTransformer': UpstreamTransformer,
+            'UpstreamConformer': UpstreamConformer,
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'])

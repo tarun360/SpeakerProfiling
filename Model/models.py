@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+from conformer.encoder import ConformerEncoder
+from IPython import embed
 
 class UpstreamTransformer(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768):
@@ -28,6 +30,7 @@ class UpstreamTransformer(nn.Module):
         gender = self.gender_classifier(output_averaged)
         return height, age, gender
     
+# Error - Currently doesn't work
 class UpstreamConformer(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768):
         super().__init__()
@@ -46,9 +49,12 @@ class UpstreamConformer(nn.Module):
     def forward(self, x):
         x = [wav for wav in x.squeeze(1)]
         x = self.upstream(x)['last_hidden_state']
-        output = self.conformer_encoder(x, x.shape[0])[0]
+        input_lengths = torch.IntTensor([x.shape[1]]*x.shape[0])
+        output = self.conformer_encoder(x, input_lengths)[0]
         output_averaged = torch.mean(output, dim=1)
+        embed()
         height = self.height_regressor(output_averaged)
+        embed()
         age = self.age_regressor(output_averaged)
         gender = self.gender_classifier(output_averaged)
         return height, age, gender
