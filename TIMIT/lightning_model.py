@@ -32,7 +32,7 @@ class LightningModel(pl.LightningModule):
             'UpstreamConformer': UpstreamConformer,
         }
         
-        self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'])
+        self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
             
         self.classification_criterion = MSE()
         self.regression_criterion = MSE()

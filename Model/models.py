@@ -4,12 +4,16 @@ from conformer.encoder import ConformerEncoder
 from IPython import embed
 
 class UpstreamTransformer(nn.Module):
-    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
         super().__init__()
         self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
         for param in self.upstream.parameters():
             param.requires_grad = False
-
+        
+        if unfreeze_last_conv_layers:
+            for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
+                param.requires_grad = True
+        
         encoder_layer = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
         self.transformer_encoder = torch.nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         

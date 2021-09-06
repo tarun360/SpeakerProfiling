@@ -23,7 +23,7 @@ class LightningModel(pl.LightningModule):
             'UpstreamTransformer': UpstreamTransformerH,
             'UpstreamConformerH': UpstreamConformerH,
         }
-        self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'])
+        self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
         self.regression_criterion = MSE()
         self.mae_criterion = MAE()
         self.rmse_criterion = RMSELoss()

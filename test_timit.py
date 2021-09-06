@@ -46,7 +46,8 @@ if __name__ == "__main__":
     parser.add_argument('--training_type', type=str, default=TIMITConfig.training_type)
     parser.add_argument('--data_type', type=str, default=TIMITConfig.data_type)
     parser.add_argument('--speed_change', action='store_true')
-
+    parser.add_argument('--unfreeze_last_conv_layers', action='store_true')
+    
     parser = pl.Trainer.add_argparse_args(parser)
     hparams = parser.parse_args()
     print(f'Testing Model on NISP Dataset\n#Cores = {hparams.n_workers}\t#GPU = {hparams.gpu}')
