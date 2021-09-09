@@ -124,13 +124,13 @@ if __name__ == "__main__":
         max_epochs=hparams.epochs, 
         checkpoint_callback=True,
         callbacks=[
-            EarlyStopping(
-                monitor='val/loss',
-                min_delta=0.00,
-                patience=20,
-                verbose=True,
-                mode='min'
-                ),
+#             EarlyStopping(
+#                 monitor='val/loss',
+#                 min_delta=0.00,
+#                 patience=20,
+#                 verbose=True,
+#                 mode='min'
+#                 ),
             model_checkpoint_callback
         ],
         logger=logger,
