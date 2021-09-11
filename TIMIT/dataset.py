@@ -42,7 +42,7 @@ class TIMITDataset(Dataset):
         else:
             self.train_transform = wavencoder.transforms.Compose([
                 wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='left', crop_position='random'),
-                wavencoder.transforms.Clipping(p=0.5),
+                # wavencoder.transforms.Clipping(p=0.5),
                 ])
 
         self.test_transform = wavencoder.transforms.Compose([
