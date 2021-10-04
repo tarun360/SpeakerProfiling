@@ -7,8 +7,10 @@ import os
 from TIMIT.dataset import TIMITDataset
 if TIMITConfig.training_type == 'H':
     from TIMIT.lightning_model_h import LightningModel
-else:
+elif TIMITConfig.loss == 'RMSE':
     from TIMIT.lightning_model import LightningModel
+elif TIMITConfig.loss == 'UncertaintyLoss':
+    from TIMIT.lightning_model_uncertainty_loss import LightningModel
 
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error, accuracy_score

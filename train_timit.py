@@ -24,8 +24,10 @@ torch.manual_seed(SEED)
 from TIMIT.dataset import TIMITDataset
 if TIMITConfig.training_type == 'H':
     from TIMIT.lightning_model_h import LightningModel
-else:
+elif TIMITConfig.loss == 'RMSE':
     from TIMIT.lightning_model import LightningModel
+elif TIMITConfig.loss == 'UncertaintyLoss':
+    from TIMIT.lightning_model_uncertainty_loss import LightningModel
 
 if __name__ == "__main__":
 

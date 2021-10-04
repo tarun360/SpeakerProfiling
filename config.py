@@ -32,6 +32,9 @@ class TIMITConfig(object):
     ## H
     # wav2vecTransformer
     model_type = 'UpstreamTransformer'
+
+    # RMSE, UncertaintyLoss
+    loss = "UncertaintyLoss"
     
     # upstream model to be loaded from s3prl. Some of the upstream models are: wav2vec2, TERA, mockingjay etc.
     #See the available models here: https://github.com/s3prl/s3prl/blob/master/s3prl/upstream/README.md
