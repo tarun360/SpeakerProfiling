@@ -24,15 +24,14 @@ class UncertaintyLoss(Module):
         self.log_var_gender = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32).cuda())
 
     def forward(self, input, target):
-
-        pred_arr = torch.split(input, 1)
+        pred_arr = torch.split(input, input.shape[0]//3)
         height_pred, age_pred, gender_pred = pred_arr
 
-        target_arr = torch.split(target, 1)
+        target_arr = torch.split(target, target.shape[0]//3)
         height_target, age_target, gender_target = target_arr
-
-        self.loss_gender = cross_entropy(input=gender_pred, target=gender_target)
-        self.loss_gender_var = cross_entropy(input=gender_pred*torch.exp(-self.log_var_gender), target=gender_target)
+        
+        self.loss_gender = mse_loss(input=gender_pred, target=gender_target)
+        self.loss_gender_var = torch.exp(-self.log_var_gender) * self.loss_gender + self.log_var_gender
         
         self.loss_height = mse_loss(input=height_pred, target=height_target)
         self.loss_height_var = torch.exp(-self.log_var_height) * self.loss_height + self.log_var_height

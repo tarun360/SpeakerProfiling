@@ -63,7 +63,7 @@ class LightningModel(pl.LightningModule):
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
 
-        loss = self.uncertainty_loss(torch.cat(y_hat_h, y_hat_a, y_hat_g), torch.cat(y_h, y_a, y_g))
+        loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_a, y_hat_g)), torch.cat((y_h, y_a, y_g)))
 
         height_mae = self.mae_criterion(y_hat_h*self.h_std+self.h_mean, y_h*self.h_std+self.h_mean)
         age_mae =self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
@@ -95,7 +95,7 @@ class LightningModel(pl.LightningModule):
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
 
-        loss = self.uncertainty_loss(torch.cat(y_hat_h, y_hat_a, y_hat_g), torch.cat(y_h, y_a, y_g))
+        loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_a, y_hat_g)), torch.cat((y_h, y_a, y_g)))
 
         height_mae = self.mae_criterion(y_hat_h*self.h_std+self.h_mean, y_h*self.h_std+self.h_mean)
         age_mae = self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
