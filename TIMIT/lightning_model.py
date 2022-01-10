@@ -69,7 +69,14 @@ class LightningModel(pl.LightningModule):
         return [optimizer]
 
     def training_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g = batch
+        x, y_h, y_a, y_g, x_len = batch
+        y_h = torch.stack(y_h).reshape(-1,)
+        y_a = torch.stack(y_a).reshape(-1,)
+        y_g = torch.stack(y_g).reshape(-1,)
+        
+        for i in range(x.shape[0]):
+            torch.narrow(x, 1, 0, x_len[i])
+
         y_hat_h, y_hat_a, y_hat_g = self(x)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
@@ -104,7 +111,14 @@ class LightningModel(pl.LightningModule):
         self.log('train/g',gender_acc, on_step=False, on_epoch=True, prog_bar=True)
 
     def validation_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g = batch
+        x, y_h, y_a, y_g, x_len = batch
+        y_h = torch.stack(y_h).reshape(-1,)
+        y_a = torch.stack(y_a).reshape(-1,)
+        y_g = torch.stack(y_g).reshape(-1,)
+        
+        for i in range(x.shape[0]):
+            torch.narrow(x, 1, 0, x_len[i])
+
         y_hat_h, y_hat_a, y_hat_g = self(x)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
@@ -136,7 +150,14 @@ class LightningModel(pl.LightningModule):
         self.log('val/g',gender_acc, on_step=False, on_epoch=True, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g = batch
+        x, y_h, y_a, y_g, x_len = batch
+        y_h = torch.stack(y_h).reshape(-1,)
+        y_a = torch.stack(y_a).reshape(-1,)
+        y_g = torch.stack(y_g).reshape(-1,)
+        
+        for i in range(x.shape[0]):
+            torch.narrow(x, 1, 0, x_len[i])
+            
         y_hat_h, y_hat_a, y_hat_g = self(x)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()

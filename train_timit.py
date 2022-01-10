@@ -29,6 +29,14 @@ elif TIMITConfig.loss == 'RMSE':
 elif TIMITConfig.loss == 'UncertaintyLoss':
     from TIMIT.lightning_model_uncertainty_loss import LightningModel
 
+import torch.nn.utils.rnn as rnn_utils
+def collate_fn(batch):
+    (seq, height, age, gender) = zip(*batch)
+    seql = [x.reshape(-1,) for x in seq]
+    seq_length = [x.shape[0] for x in seql]
+    data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
+    return data, height, age, gender, seq_length
+
 if __name__ == "__main__":
 
     parser = ArgumentParser(add_help=True)
@@ -71,7 +79,8 @@ if __name__ == "__main__":
         train_set, 
         batch_size=hparams.batch_size, 
         shuffle=True, 
-        num_workers=hparams.n_workers
+        num_workers=hparams.n_workers,
+        collate_fn = collate_fn,
     )
     ## Validation Dataset
     valid_set = TIMITDataset(
@@ -85,7 +94,8 @@ if __name__ == "__main__":
         batch_size=1,
         # hparams.batch_size, 
         shuffle=False, 
-        num_workers=hparams.n_workers
+        num_workers=hparams.n_workers,
+        collate_fn = collate_fn,
     )
     ## Testing Dataset
     test_set = TIMITDataset(
@@ -99,7 +109,8 @@ if __name__ == "__main__":
         batch_size=1,
         # hparams.batch_size, 
         shuffle=False, 
-        num_workers=hparams.n_workers
+        num_workers=hparams.n_workers,
+        collate_fn = collate_fn,
     )
 
     print('Dataset Split (Train, Validation, Test)=', len(train_set), len(valid_set), len(test_set))

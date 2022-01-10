@@ -30,32 +30,17 @@ class TIMITDataset(Dataset):
 
         if self.noise_dataset_path:
             self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='random', crop_position='random'),
                 wavencoder.transforms.AdditiveNoise(self.noise_dataset_path, p=0.5),
                 wavencoder.transforms.Clipping(p=0.5),
                 ])
         elif self.speed_change:
             self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='left', crop_position='random'),
                 wavencoder.transforms.SpeedChange(factor_range=(-0.1, 0.1), p=0.5),
                 ])
         else:
-            self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='left', crop_position='random'),
-                # wavencoder.transforms.Clipping(p=0.5),
-                ])
+            self.train_transform = None
 
-        self.test_transform = wavencoder.transforms.Compose([
-            wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='left', crop_position='center')
-            ])
-
-        if self.data_type == 'spectral':
-            # self.spectral_transform = torchaudio.transforms.MelSpectrogram(normalized=True)
-            self.spectral_transform = torchaudio.transforms.MFCC(n_mfcc=40, log_mels=True)
-            self.spec_aug = wavencoder.transforms.Compose([  
-                torchaudio.transforms.FrequencyMasking(5),
-                torchaudio.transforms.TimeMasking(5),
-            ])
+        self.test_transform = None
 
     def __len__(self):
         return len(self.files)
@@ -81,16 +66,12 @@ class TIMITDataset(Dataset):
         # self.get_age(id)
 
         wav, _ = torchaudio.load(os.path.join(self.wav_folder, file))
+        
+        if(wav.shape[0] != 1):
+            wav = torch.mean(wav, dim=0)
+
         if self.is_train:
             wav = self.train_transform(wav)  
-            if self.data_type == 'spectral':
-                wav = self.spectral_transform(wav)
-                wav = self.spec_aug(wav)
-
-        else:
-            # wav = self.test_transform(wav)
-            if self.data_type == 'spectral':
-                wav = self.spectral_transform(wav)
         
         height = (height - self.df['height'].mean())/self.df['height'].std()
         age = (age - self.df['age'].mean())/self.df['age'].std()

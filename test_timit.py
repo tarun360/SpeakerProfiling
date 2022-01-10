@@ -24,6 +24,14 @@ from tqdm import tqdm
 import pandas as pd
 import numpy as np
 
+import torch.nn.utils.rnn as rnn_utils
+def collate_fn(batch):
+    (seq, height, age, gender) = zip(*batch)
+    seql = [x.reshape(-1,) for x in seq]
+    seq_length = [x.shape[0] for x in seql]
+    data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
+    return data, height, age, gender, seq_length
+
 if __name__ == "__main__":
 
     parser = ArgumentParser(add_help=True)
@@ -61,6 +69,15 @@ if __name__ == "__main__":
         is_train=False
     )
 
+    ## Testing Dataloader
+    testloader = data.DataLoader(
+        test_set, 
+        batch_size=1, 
+        shuffle=False, 
+        num_workers=hparams.n_workers,
+        collate_fn = collate_fn,
+    )
+
     csv_path = hparams.speaker_csv_path
     df = pd.read_csv(csv_path)
     h_mean = df['height'].mean()
@@ -82,8 +99,14 @@ if __name__ == "__main__":
 
 
             # i = 0 
-            for batch in tqdm(test_set):
-                x, y_h, y_a, y_g = batch
+            for batch in tqdm(testloader):
+                x, y_h, y_a, y_g, x_len = batch
+                y_h = torch.stack(y_h).reshape(-1,)
+                y_a = torch.stack(y_a).reshape(-1,)
+                y_g = torch.stack(y_g).reshape(-1,)
+                
+                for i in range(x.shape[0]):
+                    torch.narrow(x, 1, 0, x_len[i])
                 y_hat_h, y_hat_a, y_hat_g = model(x)
 
                 height_pred.append((y_hat_h*h_std+h_mean).item())
@@ -127,8 +150,12 @@ if __name__ == "__main__":
             height_true = []
             gender_true = []
 
-            for batch in tqdm(test_set):
-                x, y_h, y_a, y_g = batch
+            for batch in tqdm(testloader):
+                x, y_h, y_a, y_g, x_len = batch
+                y_h = torch.stack(y_h).reshape(-1,)
+
+                for i in range(x.shape[0]):
+                    torch.narrow(x, 1, 0, x_len[i])
                 y_hat_h = model(x)
 
                 height_pred.append((y_hat_h*h_std+h_mean).item())
