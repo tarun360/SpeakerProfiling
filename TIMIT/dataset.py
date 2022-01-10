@@ -70,10 +70,10 @@ class TIMITDataset(Dataset):
         if(wav.shape[0] != 1):
             wav = torch.mean(wav, dim=0)
 
-        if self.is_train:
+        if self.is_train and self.train_transform:
             wav = self.train_transform(wav)  
         
         height = (height - self.df['height'].mean())/self.df['height'].std()
         age = (age - self.df['age'].mean())/self.df['age'].std()
 
-        return wav, height, age, gender
+        return wav, torch.LongTensor([height]), torch.LongTensor([age]), torch.LongTensor([gender])
