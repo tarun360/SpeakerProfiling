@@ -65,7 +65,7 @@ class LightningModel(pl.LightningModule):
         return self.model(x)
 
     def configure_optimizers(self):
-        optimizer = optim.DiffGrad(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
         return [optimizer]
 
     def training_step(self, batch, batch_idx):
