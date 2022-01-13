@@ -97,8 +97,6 @@ if __name__ == "__main__":
             gender_pred = []
             gender_true = []
 
-
-            # i = 0 
             for batch in tqdm(testloader):
                 x, y_h, y_a, y_g, x_len = batch
                 y_h = torch.stack(y_h).reshape(-1,)
@@ -115,10 +113,8 @@ if __name__ == "__main__":
 
                 height_true.append((y_h*h_std+h_mean).item())
                 age_true.append(( y_a*a_std+a_mean).item())
-                gender_true.append(y_g)
+                gender_true.append(y_g[0])
 
-                # if i> 5: break
-                # i += 1
             female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
             male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
 
