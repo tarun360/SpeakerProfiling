@@ -7,12 +7,8 @@ class TIMITConfig(object):
     # path to csv file containing age, heights of timit speakers
     speaker_csv_path = os.path.join(str(os.getcwd()), '/notebooks/SpeakerProfiling/Dataset/data_info_height_age.csv')
 
-    # length of wav files for training and testing
-    timit_wav_len = 3 * 16000
-    # 16000 * 2
-
-    batch_size = 32
-    epochs = 200
+    batch_size = 8
+    epochs = 100
     
     # loss = alpha * height_loss + beta * age_loss + gamma * gender_loss
     alpha = 1
