@@ -37,6 +37,39 @@ class UpstreamTransformer(nn.Module):
         age = self.age_regressor(output_averaged)
         gender = self.gender_classifier(output_averaged)
         return height, age, gender
+    
+class UpstreamTransformerFC(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        # Selecting the 9th encoder layer (out of 12)
+        self.upstream.model.encoder.layers = self.upstream.model.encoder.layers[0:9]
+        
+        for param in self.upstream.parameters():
+            param.requires_grad = False
+        
+        for param in self.upstream.model.encoder.layers.parameters():
+            param.requires_grad = True
+        
+        self.fc1 = nn.Linear(feature_dim, 1024)
+        
+        self.height_regressor = nn.Linear(1024, 1)
+        self.age_regressor = nn.Linear(1024, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(1024, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        x = [wav for wav in x.squeeze(1)]
+        x = self.upstream(x)['last_hidden_state']
+        x = torch.mean(x, dim=1)
+        x = self.fc1(x)
+        height = self.height_regressor(x)
+        age = self.age_regressor(x)
+        gender = self.gender_classifier(x)
+        return height, age, gender
 
 # height only models
 
