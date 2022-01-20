@@ -39,7 +39,7 @@ python TIMIT/prepare_timit_data.py --path='path to timit data folder'
 ```
 
 ### Update Config and Logger
-Update the config.py file to update the upstream model, batch_size, gpus, lr, etc and change the preferred logger in train_.py files
+Update the config.py file to update the upstream model, batch_size, gpus, lr, etc and change the preferred logger in train_.py files. Create a folder 'checkpoints' to save the best models.
 
 ### Training
 ```bash
@@ -61,6 +61,8 @@ Example:
 python test_timit.py --data_path=/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_data/ --model_checkpoint=checkpoints/epoch=1-step=245-v3.ckpt
 ```
 
+<!---
+
 ### Results
 
 #### Multitask learning: height & age estimation and gender classification on TIMIT dataset using wav2vec2:
@@ -80,6 +82,8 @@ python test_timit.py --data_path=/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_d
 | npc(frozen)+encoder-6L (multitask) | 0.001   | 7.89        | 11.53 | 6.25       | 10.05 | 8.26     | 9.25 | 5.43    | 6.29 | 66.66           | 30     | Adam      | 64         | A,H,G, 1,1,1 | PadCrop, Clipping  | PadCrop           |
 | npc(frozen)+encoder-6L (multitask) | 0.0001  | 8.06        | 6.91  | 6.17       | 5.44  | 8.03     | 8.33 | 5.65    | 6.31 | 99.4            | 30     | Adam      | 64         | A,H,G, 1,1,1 | PadCrop, Clipping  | PadCrop           |
 | npc(frozen)+encoder-6L (multitask) | 0.00001 | 7.61        | 6.66  | 5.66       | 5.24  | 7.99     | 7.72 | 5.41    | 5.48 | 98.8            | 30     | Adam      | 64         | A,H,G, 1,1,1 | PadCrop, Clipping  | PadCrop           |
+
+-->
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
