@@ -19,7 +19,6 @@ class TIMITDataset(Dataset):
         self.csv_file = hparams.speaker_csv_path
         self.df = pd.read_csv(self.csv_file)
         self.is_train = is_train
-        self.wav_len = hparams.timit_wav_len
         self.noise_dataset_path = hparams.noise_dataset_path
         self.data_type = hparams.data_type
         self.speed_change = hparams.speed_change
