@@ -80,10 +80,10 @@ if __name__ == "__main__":
 
     csv_path = hparams.speaker_csv_path
     df = pd.read_csv(csv_path)
-    h_mean = df['height'].mean()
-    h_std = df['height'].std()
-    a_mean = df['age'].mean()
-    a_std = df['age'].std()
+    h_mean = df[df['Use'] == 'TRN']['height'].mean()
+    h_std = df[df['Use'] == 'TRN']['height'].std()
+    a_mean = df[df['Use'] == 'TRN']['age'].mean()
+    a_std = df[df['Use'] == 'TRN']['age'].std()
 
     #Testing the Model
     if hparams.model_checkpoint:
@@ -122,7 +122,6 @@ if __name__ == "__main__":
             height_pred = np.array(height_pred)
             age_true = np.array(age_true)
             age_pred = np.array(age_pred)
-
 
             hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
             hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)
