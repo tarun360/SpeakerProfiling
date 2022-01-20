@@ -63,7 +63,7 @@ class TIMITDataset(Dataset):
         height = self.df.loc[id, 'height']
         age =  self.df.loc[id, 'age']
         # self.get_age(id)
-
+        
         wav, _ = torchaudio.load(os.path.join(self.wav_folder, file))
         
         if(wav.shape[0] != 1):
