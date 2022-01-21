@@ -289,7 +289,7 @@ class UpstreamTransformerMoE5(nn.Module):
         self.height_regressor = nn.Linear(1024, 1)
         self.age_regressor = nn.Linear(1024, 1)
         self.gender_classifier = nn.Sequential(
-            nn.Linear(4*feature_dim, 1),
+            nn.Linear(2*1024, 1),
             nn.Sigmoid()
         )
 
@@ -298,11 +298,11 @@ class UpstreamTransformerMoE5(nn.Module):
         x = self.upstream(x)['last_hidden_state']
         xM = self.transformer_encoder_M(x)
         xF = self.transformer_encoder_F(x)
-        xM = torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1)
-        xF = torch.cat((torch.mean(xF, dim=1), torch.std(xF, dim=1)), dim=1)
-        xM = self.dropout(self.fcM(x))
-        xF = self.dropout(self.fcF(x))
-        gender = self.gender_classifier(torch.cat((xM, xF)))
+        xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))
+        xF = self.dropout(torch.cat((torch.mean(xF, dim=1), torch.std(xF, dim=1)), dim=1))
+        xM = self.dropout(self.fcM(xM))
+        xF = self.dropout(self.fcF(xF))
+        gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
         output = (1-gender)*xM + gender*xF
         height = self.height_regressor(output)
         age = self.age_regressor(output)

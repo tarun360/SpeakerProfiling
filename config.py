@@ -27,7 +27,7 @@ class TIMITConfig(object):
     
     ## H
     # wav2vecTransformer
-    model_type = 'UpstreamTransformerMoE2'
+    model_type = 'UpstreamTransformerMoE5'
 
     # RMSE, UncertaintyLoss
     loss = "RMSE"

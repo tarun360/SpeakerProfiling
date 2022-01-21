@@ -13,7 +13,7 @@ import pandas as pd
 import torch_optimizer as optim
 
 
-from Model.models import UpstreamTransformer, UpstreamTransformerFC, UpstreamTransformerAAFC, UpstreamTransformer3SeparateFC, UpstreamTransformerMoE, UpstreamTransformerMoE2, UpstreamTransformerMoE3, UpstreamTransformerMoE4
+from Model.models import UpstreamTransformer, UpstreamTransformerFC, UpstreamTransformerAAFC, UpstreamTransformer3SeparateFC, UpstreamTransformerMoE, UpstreamTransformerMoE2, UpstreamTransformerMoE3, UpstreamTransformerMoE4, UpstreamTransformerMoE5
 
 class RMSELoss(nn.Module):
     def __init__(self):
@@ -36,7 +36,8 @@ class LightningModel(pl.LightningModule):
             'UpstreamTransformerMoE': UpstreamTransformerMoE,
             'UpstreamTransformerMoE2': UpstreamTransformerMoE2,
             'UpstreamTransformerMoE3': UpstreamTransformerMoE3,
-            'UpstreamTransformerMoE4': UpstreamTransformerMoE4
+            'UpstreamTransformerMoE4': UpstreamTransformerMoE4,
+            'UpstreamTransformerMoE5': UpstreamTransformerMoE5
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
