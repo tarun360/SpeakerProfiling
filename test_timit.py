@@ -88,6 +88,7 @@ if __name__ == "__main__":
     if hparams.model_checkpoint:
         if TIMITConfig.training_type == 'AHG':
             model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
+            model.to('cuda')
             model.eval()
             height_pred = []
             height_true = []
@@ -98,6 +99,7 @@ if __name__ == "__main__":
 
             for batch in tqdm(testloader):
                 x, y_h, y_a, y_g, x_len = batch
+                x = x.to('cuda')
                 y_h = torch.stack(y_h).reshape(-1,)
                 y_a = torch.stack(y_a).reshape(-1,)
                 y_g = torch.stack(y_g).reshape(-1,)
@@ -105,6 +107,9 @@ if __name__ == "__main__":
                 for i in range(x.shape[0]):
                     torch.narrow(x, 1, 0, x_len[i])
                 y_hat_h, y_hat_a, y_hat_g = model(x)
+                y_hat_h = y_hat_h.to('cpu')
+                y_hat_a = y_hat_a.to('cpu')
+                y_hat_g = y_hat_g.to('cpu')
 
                 height_pred.append((y_hat_h*h_std+h_mean).item())
                 age_pred.append((y_hat_a*a_std+a_mean).item())
@@ -132,6 +137,12 @@ if __name__ == "__main__":
             hrmse = mean_squared_error(height_true[female_idx], height_pred[female_idx], squared=False)
             amae = mean_absolute_error(age_true[female_idx], age_pred[female_idx])
             armse = mean_squared_error(age_true[female_idx], age_pred[female_idx], squared=False)
+            print(hrmse, hmae, armse, amae)
+            
+            hmae = mean_absolute_error(height_true, height_pred)
+            hrmse = mean_squared_error(height_true, height_pred, squared=False)
+            amae = mean_absolute_error(age_true, age_pred)
+            armse = mean_squared_error(age_true, age_pred, squared=False)
             print(hrmse, hmae, armse, amae)
             
             gender_pred_ = [int(pred[0][0] == True) for pred in gender_pred]
