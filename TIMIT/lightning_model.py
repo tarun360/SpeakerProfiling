@@ -48,10 +48,10 @@ class LightningModel(pl.LightningModule):
 
         self.csv_path = HPARAMS['speaker_csv_path']
         self.df = pd.read_csv(self.csv_path)
-        self.h_mean = self.df['height'].mean()
-        self.h_std = self.df['height'].std()
-        self.a_mean = self.df['age'].mean()
-        self.a_std = self.df['age'].std()
+        self.h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
+        self.h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
+        self.a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
+        self.a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
 
         print(f"Model Details: #Params = {self.count_total_parameters()}\t#Trainable Params = {self.count_trainable_parameters()}")
 
