@@ -13,7 +13,7 @@ import pandas as pd
 import torch_optimizer as optim
 
 
-from Model.models import UpstreamTransformer, UpstreamTransformerFC, UpstreamTransformerAAFC, UpstreamTransformer3SeparateFC, UpstreamTransformerMoE, UpstreamTransformerMoE2, UpstreamTransformerMoE3, UpstreamTransformerMoE4, UpstreamTransformerMoE5
+from Model.models import UpstreamTransformer, UpstreamTransformerMoE5
 
 class RMSELoss(nn.Module):
     def __init__(self):
@@ -30,13 +30,6 @@ class LightningModel(pl.LightningModule):
         self.save_hyperparameters()
         self.models = {
             'UpstreamTransformer': UpstreamTransformer,
-            'UpstreamTransformerFC': UpstreamTransformerFC,
-            'UpstreamTransformerAAFC': UpstreamTransformerAAFC,
-            'UpstreamTransformer3SeparateFC': UpstreamTransformer3SeparateFC,
-            'UpstreamTransformerMoE': UpstreamTransformerMoE,
-            'UpstreamTransformerMoE2': UpstreamTransformerMoE2,
-            'UpstreamTransformerMoE3': UpstreamTransformerMoE3,
-            'UpstreamTransformerMoE4': UpstreamTransformerMoE4,
             'UpstreamTransformerMoE5': UpstreamTransformerMoE5
         }
         

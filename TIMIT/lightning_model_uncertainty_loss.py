@@ -12,7 +12,7 @@ import pandas as pd
 import torch_optimizer as optim
 
 
-from Model.models import UpstreamTransformer, UpstreamTransformerFC
+from Model.models import UpstreamTransformer
 from Model.utils import RMSELoss, UncertaintyLoss
 
 class LightningModel(pl.LightningModule):
@@ -21,8 +21,7 @@ class LightningModel(pl.LightningModule):
         # HPARAMS
         self.save_hyperparameters()
         self.models = {
-            'UpstreamTransformer': UpstreamTransformer,
-            'UpstreamTransformerFC': UpstreamTransformerFC,
+            'UpstreamTransformer': UpstreamTransformer
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
