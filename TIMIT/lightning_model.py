@@ -13,7 +13,7 @@ import pandas as pd
 import torch_optimizer as optim
 
 
-from Model.models import UpstreamTransformer, UpstreamTransformerFC, UpstreamTransformerAAFC
+from Model.models import UpstreamTransformer, UpstreamTransformerFC, UpstreamTransformerAAFC, UpstreamTransformer3SeparateFC, UpstreamTransformerMoE, UpstreamTransformerMoE2
 
 class RMSELoss(nn.Module):
     def __init__(self):
@@ -31,7 +31,10 @@ class LightningModel(pl.LightningModule):
         self.models = {
             'UpstreamTransformer': UpstreamTransformer,
             'UpstreamTransformerFC': UpstreamTransformerFC,
-            'UpstreamTransformerAAFC': UpstreamTransformerAAFC
+            'UpstreamTransformerAAFC': UpstreamTransformerAAFC,
+            'UpstreamTransformer3SeparateFC': UpstreamTransformer3SeparateFC,
+            'UpstreamTransformerMoE': UpstreamTransformerMoE,
+            'UpstreamTransformerMoE2': UpstreamTransformerMoE2
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
@@ -50,10 +53,10 @@ class LightningModel(pl.LightningModule):
 
         self.csv_path = HPARAMS['speaker_csv_path']
         self.df = pd.read_csv(self.csv_path)
-        self.h_mean = self.df['height'].mean()
-        self.h_std = self.df['height'].std()
-        self.a_mean = self.df['age'].mean()
-        self.a_std = self.df['age'].std()
+        self.h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
+        self.h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
+        self.a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
+        self.a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
 
         print(f"Model Details: #Params = {self.count_total_parameters()}\t#Trainable Params = {self.count_trainable_parameters()}")
 
