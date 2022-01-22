@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 # torch.use_deterministic_algorithms(True)
+from IPython import embed
 
 import pytorch_lightning as pl
 from pytorch_lightning.metrics.regression import MeanAbsoluteError as MAE
@@ -34,7 +35,6 @@ class LightningModel(pl.LightningModule):
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
         
-        self.heightBins = [[140, 150], [150, 160], [160, 170], [170, 180], [180, 190], [190, 200], [200, 210]]
         self.classification_criterion = MSE()
         self.regression_criterion = MSE()
         self.mae_criterion = MAE()
@@ -49,6 +49,8 @@ class LightningModel(pl.LightningModule):
 
         self.csv_path = HPARAMS['speaker_csv_path']
         self.df = pd.read_csv(self.csv_path)
+        self.h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
+        self.h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
         self.a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
         self.a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
 
@@ -79,19 +81,16 @@ class LightningModel(pl.LightningModule):
         y_hat_h, y_hat_a, y_hat_g = self(x)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_a, y_hat_g = y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
-        y_hat_h = torch.argmax(y_hat_h, dim=1)
-
-        for i,h in enumerate(y_hat_h):
-            for heightBin in self.heightBins:
-                if(h >= heightBin[0] and h < heightBin[1]):
-                    y_hat_h[i] = (heightBin[0]+heightBin[1])/2
-
-        height_loss = self.height_classification_criterion(y_hat_h, y_h)
+        heightBins = torch.tensor([145, 155, 165, 175, 185, 195, 205]).to('cuda:0').float()
+        y_hat_h = torch.matmul(y_hat_h, heightBins)
+        y_hat_h = (y_hat_h-self.h_mean)/self.h_std
+        
+        height_loss = self.regression_criterion(y_hat_h, y_h)
         age_loss = self.regression_criterion(y_hat_a, y_a)
         gender_loss = self.classification_criterion(y_hat_g, y_g)
         loss = self.alpha * height_loss + self.beta * age_loss + self.gamma * gender_loss
 
-        height_mae = self.mae_criterion(y_hat_h, y_h)
+        height_mae = self.mae_criterion(y_hat_h*self.h_std+self.h_mean, y_h*self.h_std+self.h_mean)
         age_mae =self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
@@ -127,19 +126,16 @@ class LightningModel(pl.LightningModule):
         y_hat_h, y_hat_a, y_hat_g = self(x)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_a, y_hat_g = y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
-        y_hat_h = torch.argmax(y_hat_h, dim=1)
-
-        for i,h in enumerate(y_hat_h):
-            for heightBin in self.heightBins:
-                if(h >= heightBin[0] and h < heightBin[1]):
-                    y_hat_h[i] = (heightBin[0]+heightBin[1])/2
-
+        heightBins = torch.tensor([145, 155, 165, 175, 185, 195, 205]).to('cuda:0').float()
+        y_hat_h = torch.matmul(y_hat_h, heightBins)
+        y_hat_h = (y_hat_h-self.h_mean)/self.h_std
+            
         height_loss = self.regression_criterion(y_hat_h, y_h)
         age_loss = self.regression_criterion(y_hat_a, y_a)
         gender_loss = self.classification_criterion(y_hat_g, y_g)
         loss = self.alpha * height_loss + self.beta * age_loss + self.gamma * gender_loss
 
-        height_mae = self.mae_criterion(y_hat_h, y_h)
+        height_mae = self.mae_criterion(y_hat_h*self.h_std+self.h_mean, y_h*self.h_std+self.h_mean)
         age_mae = self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
@@ -172,12 +168,9 @@ class LightningModel(pl.LightningModule):
         y_hat_h, y_hat_a, y_hat_g = self(x)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_a, y_hat_g = y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
-        y_hat_h = torch.argmax(y_hat_h, dim=1)
-
-        for i,h in enumerate(y_hat_h):
-            for heightBin in self.heightBins:
-                if(h >= heightBin[0] and h < heightBin[1]):
-                    y_hat_h[i] = (heightBin[0]+heightBin[1])/2
+        heightBins = torch.tensor([145, 155, 165, 175, 185, 195, 205]).to('cuda:0').float()
+        y_hat_h = torch.matmul(y_hat_h, heightBins)
+        y_hat_h = (y_hat_h-self.h_mean)/self.h_std
 
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
@@ -185,17 +178,18 @@ class LightningModel(pl.LightningModule):
         female_idx = torch.nonzero(idx).view(-1)
         male_idx = torch.nonzero(1-idx).view(-1)
 
-        male_height_mae = self.mae_criterion(y_hat_h[male_idx], y_h[male_idx])
+        male_height_mae = self.mae_criterion(y_hat_h[male_idx]*self.h_std+self.h_mean, y_h[male_idx]*self.h_std+self.h_mean)
         male_age_mae = self.mae_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean)
 
-        femal_height_mae = self.mae_criterion(y_hat_h[female_idx], y_h[female_idx])
+        femal_height_mae = self.mae_criterion(y_hat_h[female_idx]*self.h_std+self.h_mean, y_h[female_idx]*self.h_std+self.h_mean)
         female_age_mae = self.mae_criterion(y_hat_a[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean)
 
-        male_height_rmse = self.rmse_criterion(y_hat_h[male_idx], y_h[male_idx])
+        male_height_rmse = self.rmse_criterion(y_hat_h[male_idx]*self.h_std+self.h_mean, y_h[male_idx]*self.h_std+self.h_mean)
         male_age_rmse = self.rmse_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean)
 
-        femal_height_rmse = self.rmse_criterion(y_hat_h[female_idx], y_h[female_idx])
+        femal_height_rmse = self.rmse_criterion(y_hat_h[female_idx]*self.h_std+self.h_mean, y_h[female_idx]*self.h_std+self.h_mean)
         female_age_rmse = self.rmse_criterion(y_hat_a[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean)
+
 
         return {
                 'male_height_mae':male_height_mae.item(),

@@ -79,7 +79,7 @@ class UpstreamTransformerCls(nn.Module):
         x = self.transformer_encoder(x)
         x = torch.mean(x, dim=1)
         x = self.dropout(self.fc(x))
-        height = self.height_regressor(x)
+        height = self.height_classifier(x)
         age = self.age_regressor(x)
         gender = self.gender_classifier(x)
         return height, age, gender

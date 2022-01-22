@@ -79,6 +79,8 @@ if __name__ == "__main__":
 
     csv_path = hparams.speaker_csv_path
     df = pd.read_csv(csv_path)
+    h_mean = df[df['Use'] == 'TRN']['height'].mean()
+    h_std = df[df['Use'] == 'TRN']['height'].std()
     a_mean = df[df['Use'] == 'TRN']['age'].mean()
     a_std = df[df['Use'] == 'TRN']['age'].std()
 
@@ -105,22 +107,19 @@ if __name__ == "__main__":
                 for i in range(x.shape[0]):
                     torch.narrow(x, 1, 0, x_len[i])
                 y_hat_h, y_hat_a, y_hat_g = model(x)
-                y_hat_h = torch.argmax(y_hat_h, dim=1)
-
-                for i,h in enumerate(y_hat_h):
-                    for heightBin in self.heightBins:
-                        if(h >= heightBin[0] and h < heightBin[1]):
-                            y_hat_h[i] = (heightBin[0]+heightBin[1])/2
+                heightBins = torch.tensor([145, 155, 165, 175, 185, 195, 205]).to('cuda').float()
+                y_hat_h = torch.matmul(y_hat_h, heightBins)
+                y_hat_h = (y_hat_h-self.h_mean)/self.h_std
 
                 y_hat_h = y_hat_h.to('cpu')
                 y_hat_a = y_hat_a.to('cpu')
                 y_hat_g = y_hat_g.to('cpu')
 
-                height_pred.append((y_hat_h).item())
+                height_pred.append((y_hat_h*h_std+h_mean).item())
                 age_pred.append((y_hat_a*a_std+a_mean).item())
                 gender_pred.append(y_hat_g>0.5)
 
-                height_true.append((y_h).item())
+                height_true.append((y_h*h_std+h_mean).item())
                 age_true.append(( y_a*a_std+a_mean).item())
                 gender_true.append(y_g[0])
 

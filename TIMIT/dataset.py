@@ -72,9 +72,12 @@ class TIMITDataset(Dataset):
         if self.is_train and self.train_transform:
             wav = self.train_transform(wav)  
         
+        h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
+        h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
         a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
         a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
         
+        height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
 
-        return wav, torch.LongTensor([height]), torch.LongTensor([age]), torch.LongTensor([gender])
+        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
