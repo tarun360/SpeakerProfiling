@@ -12,13 +12,22 @@ from pytorch_lightning import Trainer
 
 import torch
 import torch.utils.data as data
-# torch.use_deterministic_algorithms(True)
-
+import random
+import numpy as np
 
 # SEED
-SEED=100
-pl.utilities.seed.seed_everything(SEED)
-torch.manual_seed(SEED)
+def seed_torch(seed=100):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed) # if you are using multi-GPU.
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    pl.utilities.seed.seed_everything(seed)
+
+seed_torch()
 
 
 from TIMIT.dataset import TIMITDataset
