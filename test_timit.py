@@ -109,7 +109,7 @@ if __name__ == "__main__":
                 y_hat_h, y_hat_a, y_hat_g = model(x)
                 heightBins = torch.tensor([145, 155, 165, 175, 185, 195, 205]).to('cuda').float()
                 y_hat_h = torch.matmul(y_hat_h, heightBins)
-                y_hat_h = (y_hat_h-self.h_mean)/self.h_std
+                y_hat_h = (y_hat_h-h_mean)/h_std
 
                 y_hat_h = y_hat_h.to('cpu')
                 y_hat_a = y_hat_a.to('cpu')
