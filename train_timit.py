@@ -17,7 +17,7 @@ import numpy as np
 
 
 # SEED
-def seed_torch(seed=108):
+def seed_torch(seed=100):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     np.random.seed(seed)
