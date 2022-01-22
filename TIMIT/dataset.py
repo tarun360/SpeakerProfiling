@@ -80,4 +80,4 @@ class TIMITDataset(Dataset):
         height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
 
-        return wav, torch.LongTensor([height]), torch.LongTensor([age]), torch.LongTensor([gender])
+        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
