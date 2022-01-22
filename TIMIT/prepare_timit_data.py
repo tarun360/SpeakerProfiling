@@ -40,11 +40,11 @@ if not os.path.exists(final_data_path):
                     elif file.endswith('.PHN'):
                         src = os.path.join(original_wav_path, type, fol, id, file)
                         dst = os.path.join(final_phn_path, f'{id}_{file}')
-                        shutil.copy(src, dst)
+#                         shutil.copy(src, dst)
                     elif file.endswith('.TXT'):
                         src = os.path.join(original_wav_path, type, fol, id, file)
                         dst = os.path.join(final_txt_path, f'{id}_{file}')
-                        shutil.copy(src, dst)
+#                         shutil.copy(src, dst)
 
 
 M_speakers_id = []
