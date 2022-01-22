@@ -3,6 +3,7 @@ from config import TIMITConfig
 from argparse import ArgumentParser
 from multiprocessing import Pool
 import os
+from IPython import embed
 
 from TIMIT.dataset import TIMITDataset
 if TIMITConfig.training_type == 'H':
@@ -110,7 +111,6 @@ if __name__ == "__main__":
                 y_hat_h = y_hat_h.to('cpu')
                 y_hat_a = y_hat_a.to('cpu')
                 y_hat_g = y_hat_g.to('cpu')
-
                 height_pred.append((y_hat_h*h_std+h_mean).item())
                 age_pred.append((y_hat_a*a_std+a_mean).item())
                 gender_pred.append(y_hat_g>0.5)
