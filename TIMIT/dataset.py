@@ -58,7 +58,6 @@ class TIMITDataset(Dataset):
         file = self.files[idx]
         id = file.split('_')[0][1:]
         g_id = file.split('_')[0]
-
         gender = self.gender_dict[self.df.loc[id, 'Sex']]
         height = self.df.loc[id, 'height']
         age =  self.df.loc[id, 'age']
@@ -79,5 +78,5 @@ class TIMITDataset(Dataset):
         
         height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
-
-        return wav, torch.LongTensor([height]), torch.LongTensor([age]), torch.LongTensor([gender])
+        
+        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
