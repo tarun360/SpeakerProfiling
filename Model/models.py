@@ -29,8 +29,8 @@ class UpstreamTransformer(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, x):
-        x = [wav for wav in x.squeeze(1)]
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
         x = self.upstream(x)['last_hidden_state']
         output = self.transformer_encoder(x)
         output_averaged = torch.mean(output, dim=1)
@@ -72,7 +72,7 @@ class UpstreamTransformer2(nn.Module):
         )
 
     def forward(self, x):
-        x = [wav for wav in x.squeeze(1)]
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
         x = self.upstream(x)['last_hidden_state']
         x = self.transformer_encoder(x)
         x = self.dropout(torch.cat((torch.mean(x, dim=1), torch.std(x, dim=1)), dim=1))
@@ -93,8 +93,12 @@ class UpstreamTransformerMoE5(nn.Module):
         for param in self.upstream.parameters():
             param.requires_grad = False
         
-        for param in self.upstream.model.encoder.layers.parameters():
-            param.requires_grad = True
+#         for param in self.upstream.model.encoder.layers.parameters():
+#             param.requires_grad = True
+
+        if unfreeze_last_conv_layers:
+            for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
+                param.requires_grad = True
         
         encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
         self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
@@ -114,8 +118,8 @@ class UpstreamTransformerMoE5(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, x):
-        x = [wav for wav in x.squeeze(1)]
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
         x = self.upstream(x)['last_hidden_state']
         xM = self.transformer_encoder_M(x)
         xF = self.transformer_encoder_F(x)

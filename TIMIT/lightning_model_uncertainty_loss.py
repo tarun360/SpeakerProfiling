@@ -49,8 +49,8 @@ class LightningModel(pl.LightningModule):
     def count_trainable_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
-    def forward(self, x):
-        return self.model(x)
+    def forward(self, x, x_len):
+        return self.model(x, x_len)
 
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
@@ -62,10 +62,7 @@ class LightningModel(pl.LightningModule):
         y_a = torch.stack(y_a).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        for i in range(x.shape[0]):
-            torch.narrow(x, 1, 0, x_len[i])
-
-        y_hat_h, y_hat_a, y_hat_g = self(x)
+        y_hat_h, y_hat_a, y_hat_g = self(x, x_len)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
 
@@ -101,10 +98,7 @@ class LightningModel(pl.LightningModule):
         y_a = torch.stack(y_a).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        for i in range(x.shape[0]):
-            torch.narrow(x, 1, 0, x_len[i])
-
-        y_hat_h, y_hat_a, y_hat_g = self(x)
+        y_hat_h, y_hat_a, y_hat_g = self(x, x_len)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
 
@@ -137,10 +131,7 @@ class LightningModel(pl.LightningModule):
         y_a = torch.stack(y_a).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        for i in range(x.shape[0]):
-            torch.narrow(x, 1, 0, x_len[i])
-
-        y_hat_h, y_hat_a, y_hat_g = self(x)
+        y_hat_h, y_hat_a, y_hat_g = self(x, x_len)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
 
