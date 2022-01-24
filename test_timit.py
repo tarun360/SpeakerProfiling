@@ -104,9 +104,7 @@ if __name__ == "__main__":
                 y_a = torch.stack(y_a).reshape(-1,)
                 y_g = torch.stack(y_g).reshape(-1,)
                 
-                for i in range(x.shape[0]):
-                    torch.narrow(x, 1, 0, x_len[i])
-                y_hat_h, y_hat_a, y_hat_g = model(x)
+                y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
                 y_hat_h = y_hat_h.to('cpu')
                 y_hat_a = y_hat_a.to('cpu')
                 y_hat_g = y_hat_g.to('cpu')
