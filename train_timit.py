@@ -128,7 +128,8 @@ if __name__ == "__main__":
     # logger = TensorBoardLogger('TIMIT_logs', name='')
     logger = WandbLogger(
         name=TIMITConfig.run_name,
-        project='SpeakerProfiling'
+        project='SpeakerProfiling',
+        offline=True
     )
 
     model = LightningModel(vars(hparams))
