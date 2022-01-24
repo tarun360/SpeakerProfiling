@@ -12,7 +12,7 @@ import pandas as pd
 import torch_optimizer as optim
 
 
-from Model.models import UpstreamTransformer
+from Model.models import UpstreamTransformer, UpstreamTransformerCls3, UpstreamTransformerMfccCls, UpstreamTransformerCustomConvCls
 from Model.utils import RMSELoss, UncertaintyLoss
 
 class LightningModel(pl.LightningModule):
@@ -22,6 +22,9 @@ class LightningModel(pl.LightningModule):
         self.save_hyperparameters()
         self.models = {
             'UpstreamTransformer': UpstreamTransformer,
+            'UpstreamTransformerCls3': UpstreamTransformerCls3,
+            'UpstreamTransformerMfccCls': UpstreamTransformerMfccCls,
+            'UpstreamTransformerCustomConvCls': UpstreamTransformerCustomConvCls
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
@@ -53,7 +56,7 @@ class LightningModel(pl.LightningModule):
         return self.model(x)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return [optimizer]
 
     def training_step(self, batch, batch_idx):
@@ -67,7 +70,10 @@ class LightningModel(pl.LightningModule):
 
         y_hat_h, y_hat_a, y_hat_g = self(x)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
-        y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
+        y_hat_a, y_hat_g = y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
+        heightBins = torch.tensor([145, 155, 165, 175, 185, 195, 205]).to('cuda:0').float()
+        y_hat_h = torch.matmul(y_hat_h, heightBins)
+        y_hat_h = (y_hat_h-self.h_mean)/self.h_std
 
         loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_a, y_hat_g)), torch.cat((y_h, y_a, y_g)))
 
@@ -106,7 +112,10 @@ class LightningModel(pl.LightningModule):
 
         y_hat_h, y_hat_a, y_hat_g = self(x)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
-        y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
+        y_hat_a, y_hat_g = y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
+        heightBins = torch.tensor([145, 155, 165, 175, 185, 195, 205]).to('cuda:0').float()
+        y_hat_h = torch.matmul(y_hat_h, heightBins)
+        y_hat_h = (y_hat_h-self.h_mean)/self.h_std
 
         loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_a, y_hat_g)), torch.cat((y_h, y_a, y_g)))
 
@@ -142,7 +151,10 @@ class LightningModel(pl.LightningModule):
 
         y_hat_h, y_hat_a, y_hat_g = self(x)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
-        y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
+        y_hat_a, y_hat_g = y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
+        heightBins = torch.tensor([145, 155, 165, 175, 185, 195, 205]).to('cuda:0').float()
+        y_hat_h = torch.matmul(y_hat_h, heightBins)
+        y_hat_h = (y_hat_h-self.h_mean)/self.h_std
 
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 

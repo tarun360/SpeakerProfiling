@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from conformer.encoder import ConformerEncoder
 from IPython import embed
+import torchaudio
 
 class UpstreamTransformer(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
@@ -170,6 +171,171 @@ class UpstreamTransformerCls3(nn.Module):
         age = self.age_regressor(x)
         gender = self.gender_classifier(x)
         return height, age, gender
+    
+    
+class UpstreamTransformerMfccCls(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        # Selecting the 9th encoder layer (out of 12)
+        self.upstream.model.encoder.layers = self.upstream.model.encoder.layers[0:9]
+        
+        for param in self.upstream.parameters():
+            param.requires_grad = False
+
+#         for param in self.upstream.model.encoder.layers.parameters():
+#             param.requires_grad = True
+        
+        if unfreeze_last_conv_layers:
+            for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
+                param.requires_grad = True
+        
+        encoder_layer = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.transformer_encoder = torch.nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        
+        self.age_regressor = nn.Linear(feature_dim+13, 1)
+        self.height_classifier = nn.Sequential(
+            nn.Linear(feature_dim+13, 7),
+            nn.Softmax()
+        )
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(feature_dim+13, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        mfcc = []
+        for wav in x:
+            mfcc.append(torchaudio.compliance.kaldi.mfcc(wav.reshape(1,-1), frame_length=1,frame_shift=1).mean(dim=0).view(1,-1))
+        mfccTensor = torch.cat(mfcc, dim=0)
+        x = [wav for wav in x.squeeze(1)]
+        x = self.upstream(x)['last_hidden_state']
+        x = self.transformer_encoder(x)
+        x = torch.mean(x, dim=1)
+        x = torch.cat([x, mfccTensor], dim=1)
+        height = self.height_classifier(x)
+        age = self.age_regressor(x)
+        gender = self.gender_classifier(x)
+        return height, age, gender
+    
+class UpstreamTransformerMfccConvCls(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        # Selecting the 9th encoder layer (out of 12)
+        self.upstream.model.encoder.layers = self.upstream.model.encoder.layers[0:9]
+        
+        for param in self.upstream.parameters():
+            param.requires_grad = False
+
+#         for param in self.upstream.model.encoder.layers.parameters():
+#             param.requires_grad = True
+        
+        if unfreeze_last_conv_layers:
+            for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
+                param.requires_grad = True
+        
+        encoder_layer = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.transformer_encoder = torch.nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        
+        self.age_regressor = nn.Linear(feature_dim+13, 1)
+        self.height_classifier = nn.Sequential(
+            nn.Linear(feature_dim+13, 7),
+            nn.Softmax()
+        )
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(feature_dim+13, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        mfcc = []
+        for wav in x:
+            mfcc.append(torchaudio.compliance.kaldi.mfcc(wav.reshape(1,-1), frame_length=1,frame_shift=1).mean(dim=0).view(1,-1))
+        mfccTensor = torch.cat(mfcc, dim=0)
+        x = [wav for wav in x.squeeze(1)]
+        x = self.upstream(x)['last_hidden_state']
+        x = self.transformer_encoder(x)
+        x = torch.mean(x, dim=1)
+        x = torch.cat([x, mfccTensor], dim=1)
+        height = self.height_classifier(x)
+        age = self.age_regressor(x)
+        gender = self.gender_classifier(x)
+        return height, age, gender
+    
+class customConvExtractor(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Sequential(
+            nn.Conv1d(1, 512, kernel_size=(10,), stride=(5,), bias=False),
+            nn.Dropout(p=0.0, inplace=False),
+            nn.GELU()
+        )
+        self.conv2 = nn.Sequential(
+            nn.Conv1d(512, 512, kernel_size=(3,), stride=(2,), bias=False),
+            nn.Dropout(p=0.0, inplace=False),
+            nn.GELU()
+        )
+        self.conv3 = nn.Sequential(
+            nn.Conv1d(512, 512, kernel_size=(3,), stride=(2,), bias=False),
+            nn.Dropout(p=0.0, inplace=False),
+            nn.GELU()
+        )
+        
+    def forward(self, x):
+        return self.conv3(self.conv2(self.conv1(x)))
+    
+class UpstreamTransformerCustomConvCls(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        # Selecting the 9th encoder layer (out of 12)
+        self.upstream.model.encoder.layers = self.upstream.model.encoder.layers[0:9]
+        
+        for param in self.upstream.parameters():
+            param.requires_grad = False
+
+#         for param in self.upstream.model.encoder.layers.parameters():
+#             param.requires_grad = True
+        
+        if unfreeze_last_conv_layers:
+            for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
+                param.requires_grad = True
+        
+        self.customConvExtractor = customConvExtractor()
+        
+        self.audio_resample = torchaudio.transforms.Resample(orig_freq = 16000, new_freq = 256000)
+        
+        encoder_layer = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.transformer_encoder = torch.nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        
+        self.age_regressor = nn.Linear(feature_dim+512, 1)
+        self.height_classifier = nn.Sequential(
+            nn.Linear(feature_dim+512, 7),
+            nn.Softmax()
+        )
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(feature_dim+512, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        x_ = self.audio_resample(x)
+        customConv = self.customConvExtractor(x_.view(x_.shape[0],1,-1)).mean(dim=2)
+        x = [wav for wav in x.squeeze(1)]
+        x = self.upstream(x)['last_hidden_state']
+        x = self.transformer_encoder(x)
+        x = torch.mean(x, dim=1)
+        x = torch.cat([x, customConv], dim=1)
+        height = self.height_classifier(x)
+        age = self.age_regressor(x)
+        gender = self.gender_classifier(x)
+        return height, age, gender
+    
+    
     
 # height only models
 

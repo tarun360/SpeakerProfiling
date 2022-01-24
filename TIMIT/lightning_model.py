@@ -14,7 +14,7 @@ import pandas as pd
 import torch_optimizer as optim
 
 
-from Model.models import UpstreamTransformer, UpstreamTransformerCls, UpstreamTransformerCls2
+from Model.models import UpstreamTransformer, UpstreamTransformerCls, UpstreamTransformerCls2, UpstreamTransformerCls3
 
 class RMSELoss(nn.Module):
     def __init__(self):
@@ -32,7 +32,8 @@ class LightningModel(pl.LightningModule):
         self.models = {
             'UpstreamTransformer': UpstreamTransformer,
             'UpstreamTransformerCls': UpstreamTransformerCls,
-            'UpstreamTransformerCls2': UpstreamTransformerCls2
+            'UpstreamTransformerCls2': UpstreamTransformerCls2,
+            'UpstreamTransformerCls3': UpstreamTransformerCls3
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
