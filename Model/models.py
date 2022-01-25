@@ -18,10 +18,9 @@ class UpstreamTransformer(nn.Module):
             for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
                 param.requires_grad = True
         
-        encoder_layer = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=6, batch_first=True)
-        self.transformer_encoder_1 = torch.nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
-        self.transformer_encoder_2 = torch.nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
-        self.transformer_encoder_3 = torch.nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        self.transformer_encoder_1 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=6, batch_first=True), num_layers=num_layers)
+        self.transformer_encoder_2 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=6, batch_first=True), num_layers=num_layers)
+        self.transformer_encoder_3 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=6, batch_first=True), num_layers=num_layers)
         
         self.height_regressor = nn.Linear(feature_dim, 1)
         self.age_regressor = nn.Linear(feature_dim, 1)
