@@ -13,7 +13,7 @@ import pandas as pd
 import torch_optimizer as optim
 
 
-from Model.models import UpstreamTransformer, UpstreamTransformerMoE5, UpstreamTransformer2
+from Model.models import UpstreamTransformer, UpstreamTransformerMoE5, UpstreamTransformer2, UpstreamTransformerMoE6, UpstreamTransformerMoE8, UpstreamTransformerMoE7, UpstreamTransformerMoE9, UpstreamTransformerMoE10, UpstreamTransformerMoE11, UpstreamTransformerMoE12, UpstreamTransformerMoE13, UpstreamTransformerMoE14, UpstreamTransformerMoE15, UpstreamTransformerMoE16, UpstreamTransformerMoE17
 
 class RMSELoss(nn.Module):
     def __init__(self):
@@ -31,7 +31,19 @@ class LightningModel(pl.LightningModule):
         self.models = {
             'UpstreamTransformer': UpstreamTransformer,
             'UpstreamTransformerMoE5': UpstreamTransformerMoE5,
-            'UpstreamTransformer2': UpstreamTransformer2
+            'UpstreamTransformer2': UpstreamTransformer2,
+            'UpstreamTransformerMoE6': UpstreamTransformerMoE6,
+            'UpstreamTransformerMoE8': UpstreamTransformerMoE8,
+            'UpstreamTransformerMoE7': UpstreamTransformerMoE7,
+            'UpstreamTransformerMoE9': UpstreamTransformerMoE9,
+            'UpstreamTransformerMoE10': UpstreamTransformerMoE10,
+            'UpstreamTransformerMoE11': UpstreamTransformerMoE11,
+            'UpstreamTransformerMoE12': UpstreamTransformerMoE12,
+            'UpstreamTransformerMoE13': UpstreamTransformerMoE13,
+            'UpstreamTransformerMoE14': UpstreamTransformerMoE14,
+            'UpstreamTransformerMoE15': UpstreamTransformerMoE15,
+            'UpstreamTransformerMoE16': UpstreamTransformerMoE16,
+            'UpstreamTransformerMoE17': UpstreamTransformerMoE17
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
@@ -67,7 +79,7 @@ class LightningModel(pl.LightningModule):
         return self.model(x, x_len)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         scheduler = LinearWarmupCosineAnnealingLR(optimizer, warmup_epochs=10, max_epochs=100)
         return [optimizer], [scheduler]
 
