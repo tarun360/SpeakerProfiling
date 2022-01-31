@@ -29,8 +29,8 @@ class UpstreamTransformer(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, x):
-        x = [wav for wav in x.squeeze(1)]
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
         x = self.upstream(x)['last_hidden_state']
         output = self.transformer_encoder(x)
         output_averaged = torch.mean(output, dim=1)
@@ -69,10 +69,10 @@ class UpstreamTransformerBPooling(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, x):
-        xlist = [wav for wav in x.squeeze(1)]
-        x1 = self.upstream1(xlist)['last_hidden_state'].contiguous()
-        x2 = self.upstream2(xlist)['last_hidden_state'].contiguous()
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        x1 = self.upstream1(x)['last_hidden_state']
+        x2 = self.upstream2(x)['last_hidden_state']
         output = self.bilinear_pooling(x1,x2)
         output_averaged = torch.mean(output, dim=(1))
         height = self.height_regressor(output_averaged)
