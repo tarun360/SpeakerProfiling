@@ -16,7 +16,7 @@ class TIMITConfig(object):
     gamma = 1
 
     # training type - AHG/H
-    training_type = 'AHG'
+    training_type = 'H'
 
     # data type - raw/spectral
     data_type = 'raw' 
@@ -27,7 +27,7 @@ class TIMITConfig(object):
     
     ## H
     # wav2vecTransformer
-    model_type = 'UpstreamTransformerBPooling3'
+    model_type = 'UpstreamTransformerSingleFc'
 
     # RMSE, UncertaintyLoss
     loss = "RMSE"

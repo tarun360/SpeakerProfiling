@@ -13,7 +13,7 @@ import torch_optimizer as optim
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 
 
-from Model.models import UpstreamTransformerH, UpstreamTransformerBPoolingH, UpstreamTransformerBPooling3H
+from Model.models import UpstreamTransformerH, UpstreamTransformerBPoolingH, UpstreamTransformerBPooling3H, UpstreamTransformerSingleFcH
 
 class RMSELoss(nn.Module):
     def __init__(self):
@@ -30,7 +30,8 @@ class LightningModel(pl.LightningModule):
         self.save_hyperparameters()
         self.models = {
             'UpstreamTransformer': UpstreamTransformerH, 
-            'UpstreamTransformerBPooling3': UpstreamTransformerBPooling3H
+            'UpstreamTransformerBPooling3': UpstreamTransformerBPooling3H,
+            'UpstreamTransformerSingleFc': UpstreamTransformerSingleFcH
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
