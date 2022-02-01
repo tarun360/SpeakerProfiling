@@ -161,11 +161,9 @@ if __name__ == "__main__":
                 y_a = torch.stack(y_a).reshape(-1,)
                 y_g = torch.stack(y_g).reshape(-1,)
                 
-                y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
+                y_hat_h = model(x, x_len)
                 y_hat_h = y_hat_h.to('cpu')
-                y_hat_a = y_hat_a.to('cpu')
-                y_hat_g = y_hat_g.to('cpu')
-
+                
                 height_pred.append((y_hat_h*h_std+h_mean).item())
                 height_true.append((y_h*h_std+h_mean).item())
                 gender_true.append(y_g[0])
