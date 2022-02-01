@@ -10,9 +10,10 @@ from pytorch_lightning.metrics.classification import Accuracy
 
 import pandas as pd
 import torch_optimizer as optim
+from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 
 
-from Model.models import UpstreamTransformer, UpstreamTransformerBPooling, UpstreamTransformer2
+from Model.models import UpstreamTransformer, UpstreamTransformerBPooling, UpstreamTransformerBPooling2, UpstreamTransformerBPooling3
 
 class RMSELoss(nn.Module):
     def __init__(self):
@@ -30,7 +31,8 @@ class LightningModel(pl.LightningModule):
         self.models = {
             'UpstreamTransformer': UpstreamTransformer,
             'UpstreamTransformerBPooling': UpstreamTransformerBPooling,
-            'UpstreamTransformer2': UpstreamTransformer2
+            'UpstreamTransformerBPooling2': UpstreamTransformerBPooling2, 
+            'UpstreamTransformerBPooling3': UpstreamTransformerBPooling3
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
@@ -66,7 +68,8 @@ class LightningModel(pl.LightningModule):
         return self.model(x, x_len)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+#         scheduler = LinearWarmupCosineAnnealingLR(optimizer, warmup_epochs=10, max_epochs=100)
         return [optimizer]
 
     def training_step(self, batch, batch_idx):
