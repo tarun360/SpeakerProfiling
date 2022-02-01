@@ -148,6 +148,7 @@ if __name__ == "__main__":
         
         else:
             model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
+            model.to('cuda')
             model.eval()
             height_pred = []
             height_true = []
@@ -155,15 +156,19 @@ if __name__ == "__main__":
 
             for batch in tqdm(testloader):
                 x, y_h, y_a, y_g, x_len = batch
+                x = x.to('cuda')
                 y_h = torch.stack(y_h).reshape(-1,)
-
-                for i in range(x.shape[0]):
-                    torch.narrow(x, 1, 0, x_len[i])
-                y_hat_h = model(x)
+                y_a = torch.stack(y_a).reshape(-1,)
+                y_g = torch.stack(y_g).reshape(-1,)
+                
+                y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
+                y_hat_h = y_hat_h.to('cpu')
+                y_hat_a = y_hat_a.to('cpu')
+                y_hat_g = y_hat_g.to('cpu')
 
                 height_pred.append((y_hat_h*h_std+h_mean).item())
                 height_true.append((y_h*h_std+h_mean).item())
-                gender_true.append(y_g)
+                gender_true.append(y_g[0])
 
             female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
             male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()

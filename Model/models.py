@@ -46,10 +46,6 @@ class UpstreamTransformerBPooling(nn.Module):
         self.upstream1 = torch.hub.load('s3prl/s3prl', upstream_model)
         self.upstream2 = torch.hub.load('s3prl/s3prl', upstream_model)
         
-        # Selecting the 9th encoder layer (out of 12)
-#         self.upstream1.model.encoder.layers = self.upstream1.model.encoder.layers[0:9]
-#         self.upstream2.model.encoder.layers = self.upstream2.model.encoder.layers[0:9]
-        
         for param in self.upstream1.model.parameters():
             param.requires_grad = True
         for param in self.upstream2.model.parameters():
@@ -87,10 +83,6 @@ class UpstreamTransformerBPooling2(nn.Module):
         super().__init__()
         self.upstream1 = torch.hub.load('s3prl/s3prl', upstream_model)
         self.upstream2 = torch.hub.load('s3prl/s3prl', upstream_model)
-        
-        # Selecting the 9th encoder layer (out of 12)
-#         self.upstream1.model.encoder.layers = self.upstream1.model.encoder.layers[0:9]
-#         self.upstream2.model.encoder.layers = self.upstream2.model.encoder.layers[0:9]
         
         for param in self.upstream1.model.parameters():
             param.requires_grad = True
@@ -133,10 +125,6 @@ class UpstreamTransformerBPooling3(nn.Module):
         super().__init__()
         self.upstream1 = torch.hub.load('s3prl/s3prl', upstream_model)
         self.upstream2 = torch.hub.load('s3prl/s3prl', upstream_model)
-        
-        # Selecting the 9th encoder layer (out of 12)
-#         self.upstream1.model.encoder.layers = self.upstream1.model.encoder.layers[0:9]
-#         self.upstream2.model.encoder.layers = self.upstream2.model.encoder.layers[0:9]
         
         for param in self.upstream1.model.parameters():
             param.requires_grad = True
@@ -200,4 +188,65 @@ class UpstreamTransformerH(nn.Module):
         output_averaged = torch.mean(output, dim=1)
         height = self.height_regressor(output_averaged)
         return height
-    
+
+class UpstreamTransformerBPoolingH(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream1 = torch.hub.load('s3prl/s3prl', upstream_model)
+        self.upstream2 = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        for param in self.upstream1.model.parameters():
+            param.requires_grad = True
+        for param in self.upstream2.model.parameters():
+            param.requires_grad = True
+        
+        if unfreeze_last_conv_layers:
+            for param in self.upstream1.model.feature_extractor.conv_layers[0:4].parameters():
+                param.requires_grad = False
+            for param in self.upstream2.model.feature_extractor.conv_layers[0:4].parameters():
+                param.requires_grad = False
+        
+        self.bilinear_pooling =  CompactBilinearPooling(feature_dim, feature_dim, 1024)
+            
+        self.height_regressor = nn.Linear(1024, 1)
+
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        x1 = self.upstream1(x)['last_hidden_state']
+        x2 = self.upstream2(x)['last_hidden_state']
+        output = self.bilinear_pooling(x1,x2)
+        output_averaged = torch.mean(output, dim=(1))
+        height = self.height_regressor(output_averaged)
+        return height
+
+class UpstreamTransformerBPooling3H(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream1 = torch.hub.load('s3prl/s3prl', upstream_model)
+        self.upstream2 = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        for param in self.upstream1.model.parameters():
+            param.requires_grad = True
+        for param in self.upstream2.model.parameters():
+            param.requires_grad = True
+        
+        if unfreeze_last_conv_layers:
+            for param in self.upstream1.model.feature_extractor.conv_layers[0:4].parameters():
+                param.requires_grad = False
+            for param in self.upstream2.model.feature_extractor.conv_layers[0:4].parameters():
+                param.requires_grad = False
+        
+        self.bilinear_pooling =  CompactBilinearPooling(feature_dim, feature_dim, 4096)
+            
+        self.dropout = nn.Dropout(0.7)
+            
+        self.height_regressor = nn.Linear(4096, 1)
+
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        x1 = self.upstream1(x)['last_hidden_state']
+        x2 = self.upstream2(x)['last_hidden_state']
+        output = self.bilinear_pooling(x1,x2)
+        output_averaged = torch.mean(output, dim=(1))
+        height = self.height_regressor(self.dropout(output_averaged))
+        return height
