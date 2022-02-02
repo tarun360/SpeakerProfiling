@@ -2,7 +2,7 @@ import os
 
 class TIMITConfig(object):
     # path to the unzuipped TIMIT data folder
-    data_path = '/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_data/'
+    data_path = '/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_data_25_val/'
 
     # path to csv file containing age, heights of timit speakers
     speaker_csv_path = os.path.join(str(os.getcwd()), '/notebooks/SpeakerProfiling/Dataset/data_info_height_age.csv')
@@ -16,7 +16,7 @@ class TIMITConfig(object):
     gamma = 1
 
     # training type - AHG/H
-    training_type = 'AHG'
+    training_type = 'H'
 
     # data type - raw/spectral
     data_type = 'raw' 
@@ -27,7 +27,7 @@ class TIMITConfig(object):
     
     ## H
     # wav2vecTransformer
-    model_type = 'UpstreamTransformer'
+    model_type = 'UpstreamTransformerNewBilinear4H'
 
     # RMSE, UncertaintyLoss
     loss = "RMSE"

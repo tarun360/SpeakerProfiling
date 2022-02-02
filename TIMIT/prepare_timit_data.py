@@ -14,7 +14,7 @@ args = my_parser.parse_args()
 original_data_dir = args.path
 original_wav_path = os.path.join(original_data_dir, 'data')
 
-final_data_path = os.path.join(original_data_dir, 'wav_data')
+final_data_path = os.path.join(original_data_dir, 'wav_data_25_val')
 final_test_path = os.path.join(final_data_path, 'TEST')
 final_train_path = os.path.join(final_data_path, 'TRAIN')
 final_val_path = os.path.join(final_data_path, 'VAL')
@@ -59,8 +59,8 @@ M_speakers_id = list(set(M_speakers_id))
 F_speakers_id = list(set(F_speakers_id))
 
 
-train_m, val_m = train_test_split(M_speakers_id, test_size=0.15, random_state = 1)
-train_f, val_f = train_test_split(F_speakers_id, test_size=0.15, random_state = 2)
+train_m, val_m = train_test_split(M_speakers_id, test_size=0.25, random_state = 1)
+train_f, val_f = train_test_split(F_speakers_id, test_size=0.25, random_state = 2)
 
 
 train_ids = train_m + train_f
