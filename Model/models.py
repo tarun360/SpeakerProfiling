@@ -68,24 +68,16 @@ class UpstreamTransformer(nn.Module):
         self.down_sampling = nn.MaxPool2d(kernel_size=3, stride=2, return_indices=True)
         self.up_sampling = nn.MaxUnpool2d(kernel_size=3, stride=2)
 
-        self.logsigma = nn.Parameter(torch.FloatTensor([-0.5, -0.5, -0.5]))
-
         self.flatten_layer = nn.Flatten()
 
         self.height_regressor = nn.Sequential(
-            nn.Linear(565248, 1024),
-            nn.Linear(1024, 128),
-            nn.Linear(128, 1),
+            nn.Linear(565248, 1),
         )
         self.age_regressor = nn.Sequential(
-            nn.Linear(565248, 1024),
-            nn.Linear(1024, 128),
-            nn.Linear(128, 1),
+            nn.Linear(565248, 1),
         )
         self.gender_classifier = nn.Sequential(
-            nn.Linear(565248, 1024),
-            nn.Linear(1024, 128),
-            nn.Linear(128, 1),
+            nn.Linear(565248, 1),
             nn.Sigmoid()
         )
 
