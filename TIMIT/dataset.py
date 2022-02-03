@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import torch
 import numpy as np
+from config import TIMITConfig
 
 import torchaudio
 import wavencoder
@@ -21,6 +22,7 @@ class TIMITDataset(Dataset):
         self.is_train = is_train
         self.noise_dataset_path = hparams.noise_dataset_path
         self.data_type = hparams.data_type
+        self.wav_len = hparams.timit_wav_len
         self.speed_change = hparams.speed_change
 
         self.speaker_list = self.df.loc[:, 'ID'].values.tolist()
@@ -37,9 +39,14 @@ class TIMITDataset(Dataset):
                 wavencoder.transforms.SpeedChange(factor_range=(-0.1, 0.1), p=0.5),
                 ])
         else:
-            self.train_transform = None
+            self.train_transform = wavencoder.transforms.Compose([
+                wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='left', crop_position='random'),
+                wavencoder.transforms.Clipping(p=0.5),
+                ])
 
-        self.test_transform = None
+        self.test_transform = wavencoder.transforms.Compose([
+            wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='left', crop_position='center')
+            ])
 
     def __len__(self):
         return len(self.files)
@@ -62,7 +69,6 @@ class TIMITDataset(Dataset):
         gender = self.gender_dict[self.df.loc[id, 'Sex']]
         height = self.df.loc[id, 'height']
         age =  self.df.loc[id, 'age']
-        # self.get_age(id)
 
         wav, _ = torchaudio.load(os.path.join(self.wav_folder, file))
         
@@ -70,7 +76,9 @@ class TIMITDataset(Dataset):
             wav = torch.mean(wav, dim=0)
 
         if self.is_train and self.train_transform:
-            wav = self.train_transform(wav)  
+            wav = self.train_transform(wav)
+        else:
+            wav = self.test_transform(wav)
         
         h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
         h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
