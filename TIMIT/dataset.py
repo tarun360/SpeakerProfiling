@@ -7,6 +7,7 @@ import numpy as np
 import torchaudio
 import wavencoder
 from IPython import embed
+import random
 
 class TIMITDataset(Dataset):
     def __init__(self,
@@ -25,7 +26,7 @@ class TIMITDataset(Dataset):
 
         self.speaker_list = self.df.loc[:, 'ID'].values.tolist()
         self.df.set_index('ID', inplace=True)
-        self.gender_dict = {'M' : 0, 'F' : 1}
+        self.gender_dict = {'M' : 0.0, 'F' : 1.0}
 
         if self.noise_dataset_path:
             self.train_transform = wavencoder.transforms.Compose([
@@ -79,4 +80,40 @@ class TIMITDataset(Dataset):
         height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
         
+        if self.is_train and idx > 0 and idx%5 == 0:
+            # https://towardsdatascience.com/enhancing-neural-networks-with-mixup-in-pytorch-5129d261bc4a
+            mixup_idx = random.randint(0, len(self.files)-1)
+            mixup_file = self.files[mixup_idx]
+            mixup_id = mixup_file.split('_')[0][1:]
+            mixup_gender = self.gender_dict[self.df.loc[mixup_id, 'Sex']]
+            mixup_height = self.df.loc[mixup_id, 'height']
+            mixup_age =  self.df.loc[mixup_id, 'age']
+
+            mixup_wav, _ = torchaudio.load(os.path.join(self.wav_folder, mixup_file))
+
+            if(mixup_wav.shape[0] != 1):
+                mixup_wav = torch.mean(mixup_wav, dim=0)
+
+            if self.is_train and self.train_transform:
+                mixup_wav = self.train_transform(mixup_wav)  
+
+            mixup_height = (mixup_height - h_mean)/h_std
+            mixup_age = (mixup_age - a_mean)/a_std
+            
+            if(mixup_wav.shape[1] < wav.shape[1]):
+                cnt = (wav.shape[1]+mixup_wav.shape[1]-1)//mixup_wav.shape[1]
+                mixup_wav = mixup_wav.repeat(1,cnt)[:,:wav.shape[1]]
+            
+            if(wav.shape[1] < mixup_wav.shape[1]):
+                cnt = (mixup_wav.shape[1]+wav.shape[1]-1)//wav.shape[1]
+                wav = wav.repeat(1,cnt)[:,:mixup_wav.shape[1]]
+            
+            alpha = 1
+            lam = np.random.beta(alpha, alpha)
+            
+            wav = lam*wav + (1-lam)*mixup_wav
+            height = lam*height + (1-lam)*mixup_height
+            age = lam*age + (1-lam)*mixup_age
+            gender = lam*gender + (1-lam)*mixup_gender
+            
         return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])

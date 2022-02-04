@@ -13,7 +13,7 @@ import pandas as pd
 import torch_optimizer as optim
 
 
-from Model.models import UpstreamTransformer, UpstreamTransformerMoE5, UpstreamTransformer2, UpstreamTransformerMoE6, UpstreamTransformerMoE8, UpstreamTransformerMoE7, UpstreamTransformerMoE9, UpstreamTransformerMoE10, UpstreamTransformerMoE11, UpstreamTransformerMoE12, UpstreamTransformerMoE13, UpstreamTransformerMoE14, UpstreamTransformerMoE15, UpstreamTransformerMoE16, UpstreamTransformerMoE17
+from Model.models import UpstreamTransformer, UpstreamTransformerMoE5, UpstreamTransformer2, UpstreamTransformerMoE6, UpstreamTransformerMoE8, UpstreamTransformerMoE7, UpstreamTransformerMoE9, UpstreamTransformerMoE10, UpstreamTransformerMoE11, UpstreamTransformerMoE12, UpstreamTransformerMoE13, UpstreamTransformerMoE14, UpstreamTransformerMoE15, UpstreamTransformerMoE16, UpstreamTransformerMoE17, UpstreamTransformerMoE20
 
 class RMSELoss(nn.Module):
     def __init__(self):
@@ -43,7 +43,8 @@ class LightningModel(pl.LightningModule):
             'UpstreamTransformerMoE14': UpstreamTransformerMoE14,
             'UpstreamTransformerMoE15': UpstreamTransformerMoE15,
             'UpstreamTransformerMoE16': UpstreamTransformerMoE16,
-            'UpstreamTransformerMoE17': UpstreamTransformerMoE17
+            'UpstreamTransformerMoE17': UpstreamTransformerMoE17,
+            'UpstreamTransformerMoE20': UpstreamTransformerMoE20
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
@@ -80,8 +81,8 @@ class LightningModel(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        scheduler = LinearWarmupCosineAnnealingLR(optimizer, warmup_epochs=10, max_epochs=100)
-        return [optimizer], [scheduler]
+#         scheduler = LinearWarmupCosineAnnealingLR(optimizer, warmup_epochs=5, max_epochs=50)
+        return [optimizer]
 
     def training_step(self, batch, batch_idx):
         x, y_h, y_a, y_g, x_len = batch
