@@ -37,6 +37,7 @@ if __name__ == "__main__":
     parser = ArgumentParser(add_help=True)
     parser.add_argument('--data_path', type=str, default=TIMITConfig.data_path)
     parser.add_argument('--speaker_csv_path', type=str, default=TIMITConfig.speaker_csv_path)
+    parser.add_argument('--timit_wav_len', type=int, default=TIMITConfig.timit_wav_len)
     parser.add_argument('--batch_size', type=int, default=TIMITConfig.batch_size)
     parser.add_argument('--epochs', type=int, default=TIMITConfig.epochs)
     parser.add_argument('--alpha', type=float, default=TIMITConfig.alpha)
