@@ -80,7 +80,8 @@ class TIMITDataset(Dataset):
         height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
         
-        if self.is_train and idx > 0 and idx%5 == 0:
+        probability = 0.5
+        if self.is_train and random.random() <= probability:
             # https://towardsdatascience.com/enhancing-neural-networks-with-mixup-in-pytorch-5129d261bc4a
             mixup_idx = random.randint(0, len(self.files)-1)
             mixup_file = self.files[mixup_idx]
