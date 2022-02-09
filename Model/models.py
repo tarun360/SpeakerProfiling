@@ -22,6 +22,7 @@ class UpstreamTransformer(nn.Module):
         
         filter = [8, 16, 32, 64, 64]
 
+        self.pre_conv_block = self.pre_conv([1, 4, 8])
         # define encoder decoder layers
         self.encoder_block = nn.ModuleList([self.conv_layer([8, filter[0]])])
         self.decoder_block = nn.ModuleList([self.conv_layer([filter[0], filter[0]])])
@@ -122,7 +123,7 @@ class UpstreamTransformer(nn.Module):
         x = [wav for wav in x.squeeze(1)]   
         x = self.upstream(x)['last_hidden_state']
         x = x.unsqueeze(1)
-        x = self.pre_conv([1, 4, 8])(x)
+        x = self.pre_conv_block(x)
         g_encoder, g_decoder, g_maxpool, g_upsampl, indices = ([0] * 5 for _ in range(5))
         for i in range(5):
             g_encoder[i], g_decoder[-i - 1] = ([0] * 2 for _ in range(2))
