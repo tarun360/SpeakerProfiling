@@ -23,7 +23,7 @@ class UpstreamTransformer(nn.Module):
         filter = [8, 16, 32, 64, 64]
 
         # define encoder decoder layers
-        self.encoder_block = nn.ModuleList([self.conv_layer([1, filter[0]])])
+        self.encoder_block = nn.ModuleList([self.conv_layer([8, filter[0]])])
         self.decoder_block = nn.ModuleList([self.conv_layer([filter[0], filter[0]])])
         for i in range(4):
             self.encoder_block.append(self.conv_layer([filter[i], filter[i + 1]]))
@@ -71,15 +71,27 @@ class UpstreamTransformer(nn.Module):
         self.flatten_layer = nn.Flatten()
 
         self.height_regressor = nn.Sequential(
-            nn.Linear(565248, 1),
+            nn.Linear(81920, 1024),
+            nn.Linear(1024, 1),
         )
         self.age_regressor = nn.Sequential(
-            nn.Linear(565248, 1),
+            nn.Linear(81920, 1024),
+            nn.Linear(1024, 1),
         )
         self.gender_classifier = nn.Sequential(
-            nn.Linear(565248, 1),
+            nn.Linear(81920, 1024),
+            nn.Linear(1024, 1),
             nn.Sigmoid()
         )
+
+    def pre_conv(self, channel):
+        conv_block = nn.Sequential(
+            nn.Conv2d(in_channels=channel[0], out_channels=channel[1], kernel_size=(5, 5), padding=1),
+            nn.Conv2d(in_channels=channel[1], out_channels=channel[2], kernel_size=(3, 3)),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.ReLU(inplace=True),
+        )
+        return conv_block
 
     def conv_layer(self, channel, pred=False):
         if not pred:
@@ -110,6 +122,7 @@ class UpstreamTransformer(nn.Module):
         x = [wav for wav in x.squeeze(1)]   
         x = self.upstream(x)['last_hidden_state']
         x = x.unsqueeze(1)
+        x = self.pre_conv([1, 4, 8])(x)
         g_encoder, g_decoder, g_maxpool, g_upsampl, indices = ([0] * 5 for _ in range(5))
         for i in range(5):
             g_encoder[i], g_decoder[-i - 1] = ([0] * 2 for _ in range(2))
@@ -135,14 +148,14 @@ class UpstreamTransformer(nn.Module):
 
         for i in range(5):
             if i == 0:
-                g_upsampl[i] = self.up_sampling(g_maxpool[-1], indices[-i - 1])
+                g_upsampl[i] = self.up_sampling(g_maxpool[-1], indices[-i - 1], output_size=[ele + i + 1 for i, ele in enumerate(list(np.array(indices[-i - 1].size()[-2:])*2))])
                 g_decoder[i][0] = self.decoder_block[-i - 1](g_upsampl[i])
                 g_decoder[i][1] = self.conv_block_dec[-i - 1](g_decoder[i][0])
             else:
                 for k, dim in enumerate(g_decoder[i - 1][-1].size()[-2:]):
                     indices[-i - 1] = torch.narrow(indices[-i - 1], k+2, 0, dim)
                 if i != 4:
-                    g_upsampl[i] = self.up_sampling(g_decoder[i - 1][-1], indices[-i - 1])
+                    g_upsampl[i] = self.up_sampling(g_decoder[i - 1][-1], indices[-i - 1], output_size=[ele + i + 1 for i, ele in enumerate(list(np.array(indices[-i - 1].size()[-2:])*2))])
                 else:
                     g_upsampl[i] = self.up_sampling(g_decoder[i - 1][-1], indices[-i - 1], output_size=[ele + i + 1 for i, ele in enumerate(list(np.array(indices[-i - 1].size()[-2:])*2))])
                 g_decoder[i][0] = self.decoder_block[-i - 1](g_upsampl[i])
