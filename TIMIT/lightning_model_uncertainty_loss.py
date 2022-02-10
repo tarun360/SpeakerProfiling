@@ -7,12 +7,13 @@ import pytorch_lightning as pl
 from pytorch_lightning.metrics.regression import MeanAbsoluteError as MAE
 from pytorch_lightning.metrics.regression import MeanSquaredError  as MSE
 from pytorch_lightning.metrics.classification import Accuracy
+from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 
 import pandas as pd
 import torch_optimizer as optim
 
+from Model.models import UpstreamTransformer, UpstreamTransformerMoE5, UpstreamTransformer2, UpstreamTransformerMoE6, UpstreamTransformerMoE8, UpstreamTransformerMoE7, UpstreamTransformerMoE9, UpstreamTransformerMoE10, UpstreamTransformerMoE11, UpstreamTransformerMoE12, UpstreamTransformerMoE13, UpstreamTransformerMoE14, UpstreamTransformerMoE15, UpstreamTransformerMoE16, UpstreamTransformerMoE17, UpstreamTransformerMoE20, UpstreamTransformerMoE5Bilinear
 
-from Model.models import UpstreamTransformer
 from Model.utils import RMSELoss, UncertaintyLoss
 
 class LightningModel(pl.LightningModule):
@@ -21,7 +22,9 @@ class LightningModel(pl.LightningModule):
         # HPARAMS
         self.save_hyperparameters()
         self.models = {
-            'UpstreamTransformer': UpstreamTransformer
+            'UpstreamTransformer': UpstreamTransformer,
+            'UpstreamTransformerMoE5Bilinear': UpstreamTransformerMoE5Bilinear,
+            'UpstreamTransformerMoE5': UpstreamTransformerMoE5
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
@@ -53,7 +56,8 @@ class LightningModel(pl.LightningModule):
         return self.model(x, x_len)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+#         scheduler = LinearWarmupCosineAnnealingLR(optimizer, warmup_epochs=5, max_epochs=50)
         return [optimizer]
 
     def training_step(self, batch, batch_idx):

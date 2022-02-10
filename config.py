@@ -30,7 +30,7 @@ class TIMITConfig(object):
     model_type = 'UpstreamTransformerMoE5'
 
     # RMSE, UncertaintyLoss
-    loss = "RMSE"
+    loss = "UncertaintyLoss"
     
     # upstream model to be loaded from s3prl. Some of the upstream models are: wav2vec2, TERA, mockingjay etc.
     #See the available models here: https://github.com/s3prl/s3prl/blob/master/s3prl/upstream/README.md
@@ -43,7 +43,7 @@ class TIMITConfig(object):
     # For wav2vec2, feature_dim = 768
     # For npc, feature_dim = 512
     # For tera, feature_dim = 768
-    feature_dim = 768
+    feature_dim = 1024
 
     # No of GPUs for training and no of workers for datalaoders
     gpu = '-1'
