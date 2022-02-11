@@ -27,7 +27,7 @@ class TIMITConfig(object):
     
     ## H
     # wav2vecTransformer
-    model_type = 'UpstreamTransformerMoE5'
+    model_type = 'UpstreamTransformerLpcc4'
 
     # RMSE, UncertaintyLoss
     loss = "UncertaintyLoss"
@@ -43,11 +43,11 @@ class TIMITConfig(object):
     # For wav2vec2, feature_dim = 768
     # For npc, feature_dim = 512
     # For tera, feature_dim = 768
-    feature_dim = 1024
+    feature_dim = 768
 
     # No of GPUs for training and no of workers for datalaoders
     gpu = '-1'
-    n_workers = 0
+    n_workers = 8
 
     # model checkpoint to continue from
     model_checkpoint = None

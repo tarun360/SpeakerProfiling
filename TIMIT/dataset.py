@@ -8,6 +8,9 @@ import torchaudio
 import wavencoder
 from IPython import embed
 import random
+from spafe.features.lpc import lpc, lpcc
+from spafe.features.mfcc import mfcc
+import librosa
 
 class TIMITDataset(Dataset):
     def __init__(self,
@@ -28,19 +31,13 @@ class TIMITDataset(Dataset):
         self.df.set_index('ID', inplace=True)
         self.gender_dict = {'M' : 0.0, 'F' : 1.0}
 
-        if self.noise_dataset_path:
-            self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.AdditiveNoise(self.noise_dataset_path, p=0.5),
-                wavencoder.transforms.Clipping(p=0.5),
-                ])
-        elif self.speed_change:
-            self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.SpeedChange(factor_range=(-0.1, 0.1), p=0.5),
-                ])
-        else:
-            self.train_transform = None
+        self.train_transform = None
 
         self.test_transform = None
+        
+        self.padCropTransform = wavencoder.transforms.Compose([
+                wavencoder.transforms.PadCrop(pad_crop_length=48000, pad_position='random', crop_position='random'),
+        ])
 
     def __len__(self):
         return len(self.files)
@@ -64,7 +61,7 @@ class TIMITDataset(Dataset):
         age =  self.df.loc[id, 'age']
         # self.get_age(id)
         
-        wav, _ = torchaudio.load(os.path.join(self.wav_folder, file))
+        wav, _ = torchaudio.load(os.path.join(self.wav_folder, file), normalize=False)
         
         if(wav.shape[0] != 1):
             wav = torch.mean(wav, dim=0)
@@ -80,41 +77,23 @@ class TIMITDataset(Dataset):
         height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
         
-        probability = 0.5
-        if self.is_train and random.random() <= probability:
-            # https://towardsdatascience.com/enhancing-neural-networks-with-mixup-in-pytorch-5129d261bc4a
-            mixup_idx = random.randint(0, len(self.files)-1)
-            mixup_file = self.files[mixup_idx]
-            mixup_id = mixup_file.split('_')[0][1:]
-            mixup_gender = self.gender_dict[self.df.loc[mixup_id, 'Sex']]
-            mixup_height = self.df.loc[mixup_id, 'height']
-            mixup_age =  self.df.loc[mixup_id, 'age']
-
-            mixup_wav, _ = torchaudio.load(os.path.join(self.wav_folder, mixup_file))
-
-            if(mixup_wav.shape[0] != 1):
-                mixup_wav = torch.mean(mixup_wav, dim=0)
-
-            if self.is_train and self.train_transform:
-                mixup_wav = self.train_transform(mixup_wav)  
-
-            mixup_height = (mixup_height - h_mean)/h_std
-            mixup_age = (mixup_age - a_mean)/a_std
-            
-            if(mixup_wav.shape[1] < wav.shape[1]):
-                cnt = (wav.shape[1]+mixup_wav.shape[1]-1)//mixup_wav.shape[1]
-                mixup_wav = mixup_wav.repeat(1,cnt)[:,:wav.shape[1]]
-            
-            if(wav.shape[1] < mixup_wav.shape[1]):
-                cnt = (mixup_wav.shape[1]+wav.shape[1]-1)//wav.shape[1]
-                wav = wav.repeat(1,cnt)[:,:mixup_wav.shape[1]]
-            
-            alpha = 1
-            lam = np.random.beta(alpha, alpha)
-            
-            wav = lam*wav + (1-lam)*mixup_wav
-            height = lam*height + (1-lam)*mixup_height
-            age = lam*age + (1-lam)*mixup_age
-            gender = lam*gender + (1-lam)*mixup_gender
-            
-        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
+        croppedPaddedWav = self.padCropTransform(wav).numpy()
+        #LPC feature
+        lpccFeature = torch.tensor(lpcc(sig=croppedPaddedWav, fs=16000, num_ceps=20)).float()
+        lpccFeatureDelta1 = librosa.feature.delta(np.transpose(lpccFeature), order=1)
+        lpccFeatureDelta1 = np.transpose(lpccFeatureDelta1)
+        lpccFeatureCombined = np.concatenate((lpccFeature, lpccFeatureDelta1), axis=1)
+        lpccFeatureCombined = torch.tensor(np.transpose(lpccFeatureCombined))
+        lpccFeatureCombined = lpccFeatureCombined.unsqueeze(dim=0)
+        
+        #MFCC feature
+#         mfccFeature = torch.tensor(mfcc(sig=croppedPaddedWav, fs=16000, num_ceps=20)).float()
+#         mfccFeatureDelta1 = librosa.feature.delta(np.transpose(mfccFeature), order=1)
+#         mfccFeatureDelta1 = np.transpose(mfccFeatureDelta1)
+#         mfccFeatureCombined = np.concatenate((mfccFeature, mfccFeatureDelta1), axis=1)
+#         mfccFeatureCombined = torch.tensor(np.transpose(mfccFeatureCombined))
+#         mfccFeatureCombined = mfccFeatureCombined.unsqueeze(dim=0)
+        
+#         lpcMfccCombined = torch.cat((lpccFeatureCombined, mfccFeatureCombined), dim=0)
+        
+        return wav, lpccFeatureCombined, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])

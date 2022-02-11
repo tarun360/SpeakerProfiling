@@ -4,6 +4,9 @@ from conformer.encoder import ConformerEncoder
 from IPython import embed
 from area_attention import AreaAttention, MultiHeadAreaAttention
 from .CompactBilinearPooling import CompactBilinearPooling
+from spafe.features.lpc import lpc, lpcc
+import librosa
+import numpy as np
 
 class UpstreamTransformer(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
@@ -115,7 +118,135 @@ class UpstreamTransformerMoE5(nn.Module):
         
         self.dropout = nn.Dropout(0.5)
 
-        self.height_regressor = nn.Linear(1024, 1)
+        self.height_regressor = nn.Linear(1024+26, 1)
+        self.age_regressor = nn.Linear(1024+26, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(2*1024, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, x_len):
+        x = x.float()
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        
+        lpccs = []
+        for i in range(len(x)):
+            lpccFeature = torch.tensor(lpcc(sig=x[i].cpu().numpy(), fs=16000, num_ceps=13, lifter=0, normalize=True)).float()
+            lpccFeatureMean = torch.mean(lpccFeature, dim=0).reshape(1,-1)
+            lpccFeatureStd = torch.std(lpccFeature, dim=0).reshape(1,-1)
+            lpccFeatureMeanStd = torch.cat((lpccFeatureMean, lpccFeatureStd), dim=1)
+            lpccs.append(lpccFeatureMeanStd)
+
+        lpccsTensor = torch.cat(lpccs, dim=0).to('cuda')
+        
+        x = self.upstream(x)['last_hidden_state']
+        
+        xM = self.transformer_encoder_M(x)
+        xF = self.transformer_encoder_F(x)
+        xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))
+        xF = self.dropout(torch.cat((torch.mean(xF, dim=1), torch.std(xF, dim=1)), dim=1))
+        
+        xM = self.dropout(self.fcM(xM))
+        xF = self.dropout(self.fcF(xF))
+        gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
+
+        output = torch.cat(((1-gender)*xM + gender*xF, lpccsTensor), dim=1)
+        height = self.height_regressor(output)
+        age = self.age_regressor(output)
+        return height, age, gender
+
+    
+class UpstreamTransformerLpcc2(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        # Selecting the 9th encoder layer (out of 12)
+#         self.upstream.model.encoder.layers = self.upstream.model.encoder.layers[0:9]
+        
+        for param in self.upstream.parameters():
+            param.requires_grad = True
+       
+        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
+            param.requires_grad = False
+        
+        encoder_layer_lpcc = torch.nn.TransformerEncoderLayer(d_model=13, nhead=1, batch_first=True)
+        self.transformer_encoder_lpcc = torch.nn.TransformerEncoder(encoder_layer_lpcc, num_layers=num_layers)
+        
+        self.fc = nn.Linear(2*feature_dim, 1024)
+        
+        self.dropout = nn.Dropout(0.5)
+
+        self.height_regressor = nn.Linear(27, 1)
+        self.age_regressor = nn.Linear(1024, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(1024, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, x_len):
+        x = x.float()
+                                                              
+        lpccs = []
+        x = [wav for wav in x.squeeze(1)]
+        
+        for i in range(len(x)):
+            lpccFeature = torch.tensor(lpcc(sig=x[i].cpu().numpy(), fs=16000, num_ceps=13, lifter=0, normalize=True)).float()
+            lpccs.append(lpccFeature.unsqueeze(dim=0))
+            
+        lpccsTensor = torch.cat(lpccs, dim=0).to('cuda')
+        lpccOut = self.transformer_encoder_lpcc(lpccsTensor)    
+        lpccOut = self.dropout(torch.cat((torch.mean(lpccOut, dim=1), torch.std(lpccOut, dim=1)), dim=1))
+                                                                    
+        x = self.upstream(x)['last_hidden_state']
+        x = torch.cat((torch.mean(x, dim=1), torch.std(x, dim=1)), dim=1)
+        x = self.dropout(self.fc(x))                                                                                                                                                                   
+        gender = self.gender_classifier(x)
+        age = self.age_regressor(x)
+        height = self.height_regressor(torch.cat((gender,lpccOut), dim=1))
+        
+        return height, age, gender
+  
+  
+class UpstreamTransformerLpcc3(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        for param in self.upstream.parameters():
+            param.requires_grad = True
+       
+        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
+            param.requires_grad = False
+            
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(5, 2), padding='same')
+        self.bn1 = nn.BatchNorm2d(32)
+        self.relu1 = nn.ReLU()
+        self.maxpool1 = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
+        
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(2, 2), padding='same')
+        self.bn2 = nn.BatchNorm2d(64)
+        self.relu2 = nn.ReLU()
+        self.maxpool2 = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
+        
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(2, 2), padding='same')
+        self.bn3 = nn.BatchNorm2d(128)
+        self.relu3 = nn.ReLU()
+        self.maxpool3 = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
+        self.fcL = nn.Linear(128, 128)
+        
+        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
+        
+        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.transformer_encoder_F = torch.nn.TransformerEncoder(encoder_layer_F, num_layers=num_layers)
+        
+        self.fcM = nn.Linear(2*feature_dim, 1024)
+        self.fcF = nn.Linear(2*feature_dim, 1024)
+        
+        self.dropout = nn.Dropout(0.5)
+
+        self.height_regressor = nn.Linear(1024+128, 1)
         self.age_regressor = nn.Linear(1024, 1)
         self.gender_classifier = nn.Sequential(
             nn.Linear(2*1024, 1),
@@ -123,20 +254,113 @@ class UpstreamTransformerMoE5(nn.Module):
         )
 
     def forward(self, x, x_len):
-        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        x = x.float()
+        lpccs = []
+        
+        x_ = [wav.cpu().numpy() for wav in x.squeeze(1)]
+        x = [wav for wav in x.squeeze(1)]
+        for i in range(len(x_)):
+            lpccFeature = torch.tensor(lpcc(sig=x_[i], fs=16000, num_ceps=20, lifter=0, normalize=True)).float()
+            lpccs.append(lpccFeature.unsqueeze(dim=0).unsqueeze(dim=0))
+            
+        lpccsTensor = torch.cat(lpccs, dim=0).to('cuda')
+        
+        lpccs1 = self.maxpool1(self.relu1(self.bn1(self.conv1(lpccsTensor))))
+        lpccs2 = self.maxpool2(self.relu2(self.bn2(self.conv2(lpccs1))))
+        lpccs3 = self.maxpool3(self.relu3(self.bn3(self.conv3(lpccs2))))
+        lpccs4 = torch.mean(lpccs3.view(lpccs3.size(0), lpccs3.size(1), -1), dim=2)
+        lpccs5 = self.fcL(lpccs4)
+        
         x = self.upstream(x)['last_hidden_state']
+        
         xM = self.transformer_encoder_M(x)
         xF = self.transformer_encoder_F(x)
         xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))
         xF = self.dropout(torch.cat((torch.mean(xF, dim=1), torch.std(xF, dim=1)), dim=1))
+        
         xM = self.dropout(self.fcM(xM))
         xF = self.dropout(self.fcF(xF))
         gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
+        
         output = (1-gender)*xM + gender*xF
-        height = self.height_regressor(output)
+        height = self.height_regressor(torch.cat((output, lpccs5), dim=1))
         age = self.age_regressor(output)
         return height, age, gender
 
+class UpstreamTransformerLpcc4(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        for param in self.upstream.parameters():
+            param.requires_grad = True
+       
+        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
+            param.requires_grad = False
+        
+        # https://github.com/iPRoBe-lab/1D-Triplet-CNN/blob/master/models/OneD_Triplet_CNN.py
+        self.conv_features = nn.Sequential(
+            nn.Conv2d(1, 16, kernel_size=(3,1), stride=1, padding='same' , dilation = (2,1)),
+            nn.SELU(),
+
+            nn.Conv2d(16, 32, kernel_size=(3,1), stride=1, padding='same', dilation = (2,1)),
+            nn.SELU(),
+
+            nn.Conv2d(32, 64, kernel_size=(7,1), padding='same', dilation = (2,1)),
+            nn.SELU(),
+
+            nn.Conv2d(64, 128, kernel_size=(9,1), padding='same', dilation = (3,1)),
+            nn.SELU()
+        )
+
+        self.conv_regularization = nn.Sequential(
+            nn.AlphaDropout(p=0.25)
+        )
+
+        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
+        
+        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.transformer_encoder_F = torch.nn.TransformerEncoder(encoder_layer_F, num_layers=num_layers)
+        
+        self.fcM = nn.Linear(2*feature_dim, 1024)
+        self.fcF = nn.Linear(2*feature_dim, 1024)
+        
+        self.dropout = nn.Dropout(0.5)
+
+        self.height_regressor = nn.Linear(1024+128, 1)
+        self.age_regressor = nn.Linear(1024, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(2*1024, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, x_len, lpcc):
+        x = x.float()
+    
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        
+        o = self.conv_features(lpcc)
+        o = self.conv_regularization(o)
+        o = torch.mean(o.view(o.size(0), o.size(1), -1), dim=2)
+        
+        x = self.upstream(x)['last_hidden_state']
+        
+        xM = self.transformer_encoder_M(x)
+        xF = self.transformer_encoder_F(x)
+        xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))
+        xF = self.dropout(torch.cat((torch.mean(xF, dim=1), torch.std(xF, dim=1)), dim=1))
+        
+        xM = self.dropout(self.fcM(xM))
+        xF = self.dropout(self.fcF(xF))
+        gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
+        
+        output = (1-gender)*xM + gender*xF
+        height = self.height_regressor(torch.cat((output, o), dim=1))
+        age = self.age_regressor(output)
+        return height, age, gender
+    
+    
 class UpstreamTransformerMoE5Bilinear(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
         super().__init__()
