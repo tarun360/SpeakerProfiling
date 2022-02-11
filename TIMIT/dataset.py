@@ -79,7 +79,7 @@ class TIMITDataset(Dataset):
         
         croppedPaddedWav = self.padCropTransform(wav).numpy()
         #LPC feature
-        lpccFeature = torch.tensor(lpcc(sig=croppedPaddedWav, fs=16000, num_ceps=20)).float()
+        lpccFeature = torch.tensor(lpcc(sig=croppedPaddedWav, fs=16000, num_ceps=20, normalize=True)).float()
         lpccFeatureDelta1 = librosa.feature.delta(np.transpose(lpccFeature), order=1)
         lpccFeatureDelta1 = np.transpose(lpccFeatureDelta1)
         lpccFeatureCombined = np.concatenate((lpccFeature, lpccFeatureDelta1), axis=1)
