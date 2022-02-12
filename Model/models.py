@@ -300,7 +300,7 @@ class UpstreamTransformerLpcc4(nn.Module):
         
         # https://github.com/iPRoBe-lab/1D-Triplet-CNN/blob/master/models/OneD_Triplet_CNN.py
         self.conv_features = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=(3,1), stride=1, padding='same' , dilation = (2,1)),
+            nn.Conv2d(2, 16, kernel_size=(3,1), stride=1, padding='same' , dilation = (2,1)),
             nn.SELU(),
 
             nn.Conv2d(16, 32, kernel_size=(3,1), stride=1, padding='same', dilation = (2,1)),
@@ -328,7 +328,7 @@ class UpstreamTransformerLpcc4(nn.Module):
         
         self.dropout = nn.Dropout(0.5)
 
-        self.height_regressor = nn.Linear(1024+128, 1)
+        self.height_regressor = nn.Linear(128, 1)
         self.age_regressor = nn.Linear(1024, 1)
         self.gender_classifier = nn.Sequential(
             nn.Linear(2*1024, 1),
@@ -336,8 +336,8 @@ class UpstreamTransformerLpcc4(nn.Module):
         )
 
     def forward(self, x, x_len, lpcc):
-        x = x.float()
-    
+#         x = x.float()
+#         embed()
         x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
         
         o = self.conv_features(lpcc)
@@ -356,7 +356,8 @@ class UpstreamTransformerLpcc4(nn.Module):
         gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
         
         output = (1-gender)*xM + gender*xF
-        height = self.height_regressor(torch.cat((output, o), dim=1))
+#         height = self.height_regressor(torch.cat((output, o), dim=1))
+        height = self.height_regressor(o)
         age = self.age_regressor(output)
         return height, age, gender
     

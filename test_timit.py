@@ -27,11 +27,11 @@ import numpy as np
 
 import torch.nn.utils.rnn as rnn_utils
 def collate_fn(batch):
-    (seq, height, age, gender) = zip(*batch)
+    (seq, lpcc, height, age, gender) = zip(*batch)
     seql = [x.reshape(-1,) for x in seq]
     seq_length = [x.shape[0] for x in seql]
     data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
-    return data, height, age, gender, seq_length
+    return data, lpcc, height, age, gender, seq_length
 
 if __name__ == "__main__":
 
@@ -99,13 +99,15 @@ if __name__ == "__main__":
             gender_true = []
 
             for batch in tqdm(testloader):
-                x, y_h, y_a, y_g, x_len = batch
+                x, lpcc, y_h, y_a, y_g, x_len = batch
                 x = x.to('cuda')
+                lpcc = torch.stack(lpcc)
+                lpcc = lpcc.to('cuda')
                 y_h = torch.stack(y_h).reshape(-1,)
                 y_a = torch.stack(y_a).reshape(-1,)
                 y_g = torch.stack(y_g).reshape(-1,)
                 
-                y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
+                y_hat_h, y_hat_a, y_hat_g = model(x, x_len, lpcc)
                 y_hat_h = y_hat_h.to('cpu')
                 y_hat_a = y_hat_a.to('cpu')
                 y_hat_g = y_hat_g.to('cpu')
