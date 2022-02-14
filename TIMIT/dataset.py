@@ -7,6 +7,10 @@ import numpy as np
 import torchaudio
 import wavencoder
 from IPython import embed
+import random
+from spafe.features.lpc import lpc, lpcc
+from spafe.features.mfcc import mfcc
+import librosa
 
 class TIMITDataset(Dataset):
     def __init__(self,
@@ -35,19 +39,17 @@ class TIMITDataset(Dataset):
                 new_files.append(file)
         self.files = new_files
 
-        if self.noise_dataset_path:
-            self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.AdditiveNoise(self.noise_dataset_path, p=0.5),
-                wavencoder.transforms.Clipping(p=0.5),
-                ])
-        elif self.speed_change:
-            self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.SpeedChange(factor_range=(-0.1, 0.1), p=0.5),
-                ])
-        else:
-            self.train_transform = None
+        self.train_transform = None
 
         self.test_transform = None
+        
+        self.padCropTransform = wavencoder.transforms.Compose([
+                wavencoder.transforms.PadCrop(pad_crop_length=64000, pad_position='center', crop_position='center'),
+        ])
+        
+        self.mfccTransform = torchaudio.transforms.MFCC()
+        self.cmvn = torchaudio.transforms.SlidingWindowCmn(norm_vars=True)
+        self.deltaTransform = torchaudio.transforms.ComputeDeltas()
 
     def __len__(self):
         return len(self.files)
@@ -73,7 +75,7 @@ class TIMITDataset(Dataset):
         # self.get_age(id)
         assert (gender == 0)
 
-        wav, _ = torchaudio.load(os.path.join(self.wav_folder, file))
+        wav, _ = torchaudio.load(os.path.join(self.wav_folder, file), normalize=True)
         
         if(wav.shape[0] != 1):
             wav = torch.mean(wav, dim=0)
@@ -88,5 +90,24 @@ class TIMITDataset(Dataset):
         
         height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
-
-        return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
+        
+        croppedPaddedWav = self.padCropTransform(wav)
+        #LPC feature
+#         lpccFeature = lpcc(sig=croppedPaddedWav.numpy(), fs=16000, num_ceps=20, normalize=True)
+#         lpccFeatureDelta1 = librosa.feature.delta(np.transpose(lpccFeature), order=1)
+#         lpccFeatureDelta1 = np.transpose(lpccFeatureDelta1)
+#         lpccFeatureCombined = np.concatenate((lpccFeature, lpccFeatureDelta1), axis=1)
+#         lpccFeatureCombined = torch.tensor(np.transpose(lpccFeatureCombined))
+#         lpccFeatureCombined = lpccFeatureCombined.unsqueeze(dim=0)
+        
+        #MFCC feature
+        mfccFeature = self.mfccTransform(croppedPaddedWav)
+        mfccDeltaFeature = self.deltaTransform(mfccFeature)
+        mfccFeature = self.cmvn(mfccFeature)
+        mfccDeltaFeature = self.cmvn(mfccDeltaFeature)
+        mfccFeaturesCombined = torch.cat((mfccFeature, mfccDeltaFeature), dim=0)
+        mfccFeaturesCombined = torch.nan_to_num(mfccFeaturesCombined)
+        assert (torch.isnan(mfccFeaturesCombined).any() == False)
+        
+        return wav,  mfccFeaturesCombined, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
+    

@@ -8,7 +8,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning import Trainer
-
+from IPython import embed
 
 import torch
 import torch.utils.data as data
@@ -40,11 +40,11 @@ elif TIMITConfig.loss == 'UncertaintyLoss':
 
 import torch.nn.utils.rnn as rnn_utils
 def collate_fn(batch):
-    (seq, height, age, gender) = zip(*batch)
+    (seq, lpcc, height, age, gender) = zip(*batch)
     seql = [x.reshape(-1,) for x in seq]
     seq_length = [x.shape[0] for x in seql]
     data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
-    return data, height, age, gender, seq_length
+    return data, lpcc, height, age, gender, seq_length
 
 if __name__ == "__main__":
 
@@ -159,6 +159,23 @@ if __name__ == "__main__":
         distributed_backend='ddp'
         )
 
+    #     # Run learning rate finder
+#     lr_finder = trainer.tuner.lr_find(model, train_dataloader=trainloader, val_dataloaders=valloader)
+    
+#     # Results can be found in
+#     lr_finder.results
+
+#     # Plot with
+#     fig = lr_finder.plot(suggest=True)
+#     fig.savefig('auto_lr_find_plot.png')
+
+#     # Pick point based on plot, or get suggestion
+#     new_lr = lr_finder.suggestion()
+#     embed()
+#     print("new lr = ", new_lr)
+#     # update hparams of the model
+#     model.hparams.lr = new_lr
+    
     trainer.fit(model, train_dataloader=trainloader, val_dataloaders=valloader)
 
     print('\n\nCompleted Training...\nTesting the model with checkpoint -', model_checkpoint_callback.best_model_path)

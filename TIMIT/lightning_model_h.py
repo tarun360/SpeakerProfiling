@@ -13,7 +13,7 @@ import torch_optimizer as optim
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 
 
-from Model.models import UpstreamTransformerNew1H, UpstreamTransformerNew2H, UpstreamTransformerNewBilinear1H, UpstreamTransformerNew3H, UpstreamTransformerNew4H,UpstreamTransformerNewBilinear4H
+from Model.models import UpstreamTransformerNew1H, UpstreamTransformerNew2H, UpstreamTransformerNewBilinear1H, UpstreamTransformerNew3H, UpstreamTransformerNew4H,UpstreamTransformerNewBilinear4H, CNNLPCC, CNNLPCC2
 
 class RMSELoss(nn.Module):
     def __init__(self):
@@ -34,7 +34,9 @@ class LightningModel(pl.LightningModule):
             'UpstreamTransformerNewBilinear1H': UpstreamTransformerNewBilinear1H,
             'UpstreamTransformerNew3H': UpstreamTransformerNew3H,
             'UpstreamTransformerNew4H': UpstreamTransformerNew4H,
-            'UpstreamTransformerNewBilinear4H': UpstreamTransformerNewBilinear4H
+            'UpstreamTransformerNewBilinear4H': UpstreamTransformerNewBilinear4H,
+            'CNNLPCC': CNNLPCC,
+            'CNNLPCC2': CNNLPCC2
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
@@ -62,21 +64,24 @@ class LightningModel(pl.LightningModule):
     def count_trainable_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
-    def forward(self, x, x_len):
-        return self.model(x, x_len)
+    def forward(self, x, x_len, lpcc):
+        return self.model(x, x_len, lpcc)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        scheduler = LinearWarmupCosineAnnealingLR(optimizer, warmup_epochs=10, max_epochs=100)
-        return [optimizer], [scheduler]
+#         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.SGD(self.parameters(), lr=self.lr, momentum=0.9)
+#         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=50)
+#         scheduler = LinearWarmupCosineAnnealingLR(optimizer, warmup_epochs=10, max_epochs=100)
+        return optimizer
 
     def training_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g, x_len = batch
+        x, lpcc, y_h, y_a, y_g, x_len = batch
+        lpcc = torch.stack(lpcc)
         y_h = torch.stack(y_h).reshape(-1,)
         y_a = torch.stack(y_a).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        y_hat_h = self(x, x_len)
+        y_hat_h = self(x, x_len, lpcc)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h = y_hat_h.view(-1).float()
 
@@ -100,12 +105,13 @@ class LightningModel(pl.LightningModule):
         self.log('train/h',height_mae.item(), on_step=False, on_epoch=True, prog_bar=True)
 
     def validation_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g, x_len = batch
+        x, lpcc, y_h, y_a, y_g, x_len = batch
+        lpcc = torch.stack(lpcc)
         y_h = torch.stack(y_h).reshape(-1,)
         y_a = torch.stack(y_a).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        y_hat_h = self(x, x_len)
+        y_hat_h = self(x, x_len, lpcc)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h = y_hat_h.view(-1).float()
 
@@ -127,12 +133,13 @@ class LightningModel(pl.LightningModule):
         self.log('val/h',height_mae.item(), on_step=False, on_epoch=True, prog_bar=True)
    
     def test_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g, x_len = batch
+        x, lpcc, y_h, y_a, y_g, x_len = batch
+        lpcc = torch.stack(lpcc)
         y_h = torch.stack(y_h).reshape(-1,)
         y_a = torch.stack(y_a).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        y_hat_h = self(x, x_len)
+        y_hat_h = self(x, x_len, lpcc)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h = y_hat_h.view(-1).float()
 
