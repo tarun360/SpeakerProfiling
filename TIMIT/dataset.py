@@ -27,6 +27,14 @@ class TIMITDataset(Dataset):
         self.df.set_index('ID', inplace=True)
         self.gender_dict = {'M' : 0, 'F' : 1}
 
+        new_files = []
+        for file in self.files:
+            id = file.split('_')[0][1:]
+            gender = self.gender_dict[self.df.loc[id, 'Sex']]
+            if(gender == 0):
+                new_files.append(file)
+        self.files = new_files
+
         if self.noise_dataset_path:
             self.train_transform = wavencoder.transforms.Compose([
                 wavencoder.transforms.AdditiveNoise(self.noise_dataset_path, p=0.5),
@@ -63,6 +71,7 @@ class TIMITDataset(Dataset):
         height = self.df.loc[id, 'height']
         age =  self.df.loc[id, 'age']
         # self.get_age(id)
+        assert (gender == 0)
 
         wav, _ = torchaudio.load(os.path.join(self.wav_folder, file))
         
