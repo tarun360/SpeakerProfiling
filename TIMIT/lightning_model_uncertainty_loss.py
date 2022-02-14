@@ -61,10 +61,10 @@ class LightningModel(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        lpccs_list = ['model.height_regressor.weight','model.height_regressor.bias','model.conv_features.0.weight','model.conv_features.0.bias','model.conv_features.2.weight','model.conv_features.2.bias','model.conv_features.4.weight','model.conv_features.4.bias','model.conv_features.6.weight','model.conv_features.6.bias']
+        lpccs_list = ['model.conv_features.0.weight','model.conv_features.0.bias','model.conv_features.2.weight','model.conv_features.2.bias','model.conv_features.4.weight','model.conv_features.4.bias','model.conv_features.6.weight','model.conv_features.6.bias']
         lpccs_params = list(map(lambda x: x[1],list(filter(lambda kv: kv[0] in lpccs_list, self.named_parameters()))))
         other_params = list(map(lambda x: x[1],list(filter(lambda kv: kv[0] not in lpccs_list, self.named_parameters()))))
-        optimizer = torch.optim.Adam([{'params': lpccs_params, 'lr': 0.0005}, {'params': other_params, 'lr': self.lr}], lr=self.lr)
+        optimizer = torch.optim.Adam([{'params': lpccs_params, 'lr': 0.0001}, {'params': other_params, 'lr': self.lr}], lr=self.lr)
 #         scheduler = LinearWarmupCosineAnnealingLR(optimizer, warmup_epochs=5, max_epochs=50)
         return [optimizer]
 

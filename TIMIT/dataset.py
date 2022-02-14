@@ -65,7 +65,7 @@ class TIMITDataset(Dataset):
         age =  self.df.loc[id, 'age']
         # self.get_age(id)
         
-        wav, _ = torchaudio.load(os.path.join(self.wav_folder, file))
+        wav, _ = torchaudio.load(os.path.join(self.wav_folder, file), normalize=False)
         
         if(wav.shape[0] != 1):
             wav = torch.mean(wav, dim=0)
@@ -83,22 +83,22 @@ class TIMITDataset(Dataset):
         
         croppedPaddedWav = self.padCropTransform(wav)
         #LPC feature
-#         lpccFeature = torch.tensor(lpcc(sig=croppedPaddedWav, fs=16000, num_ceps=20, normalize=True)).float()
-#         lpccFeatureDelta1 = librosa.feature.delta(np.transpose(lpccFeature), order=1)
-#         lpccFeatureDelta1 = np.transpose(lpccFeatureDelta1)
-#         lpccFeatureCombined = np.concatenate((lpccFeature, lpccFeatureDelta1), axis=1)
-#         lpccFeatureCombined = torch.tensor(np.transpose(lpccFeatureCombined))
-#         lpccFeatureCombined = lpccFeatureCombined.unsqueeze(dim=0)
+        lpccFeature = lpcc(sig=croppedPaddedWav.numpy(), fs=16000, num_ceps=20, normalize=True)
+        lpccFeatureDelta1 = librosa.feature.delta(np.transpose(lpccFeature), order=1)
+        lpccFeatureDelta1 = np.transpose(lpccFeatureDelta1)
+        lpccFeatureCombined = np.concatenate((lpccFeature, lpccFeatureDelta1), axis=1)
+        lpccFeatureCombined = torch.tensor(np.transpose(lpccFeatureCombined))
+        lpccFeatureCombined = lpccFeatureCombined.unsqueeze(dim=0)
         
         #MFCC feature
-        mfccFeature = self.mfccTransform(croppedPaddedWav)
-        mfccDeltaFeature = self.deltaTransform(mfccFeature)
-        mfccFeature = self.cmvn(mfccFeature)
-        mfccDeltaFeature = self.cmvn(mfccDeltaFeature)
-        mfccFeaturesCombined = torch.cat((mfccFeature, mfccDeltaFeature), dim=0)
-        mfccFeaturesCombined = torch.nan_to_num(mfccFeaturesCombined)
+#         mfccFeature = self.mfccTransform(croppedPaddedWav)
+#         mfccDeltaFeature = self.deltaTransform(mfccFeature)
+#         mfccFeature = self.cmvn(mfccFeature)
+#         mfccDeltaFeature = self.cmvn(mfccDeltaFeature)
+#         mfccFeaturesCombined = torch.cat((mfccFeature, mfccDeltaFeature), dim=0)
+#         mfccFeaturesCombined = torch.nan_to_num(mfccFeaturesCombined)
 #         assert (torch.isnan(mfccFeaturesCombined).any() == False)
 #         if((torch.isnan(mfccFeaturesCombined).any() == False)):
 #             embed()
         
-        return wav, mfccFeaturesCombined, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
+        return wav, lpccFeatureCombined, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
