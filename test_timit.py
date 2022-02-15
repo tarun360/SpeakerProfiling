@@ -88,7 +88,7 @@ if __name__ == "__main__":
     #Testing the Model
     if hparams.model_checkpoint:
         if TIMITConfig.training_type == 'AHG':
-            model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
+            model = LightningModel.load_from_checkpoint(hparams.model_checkpoint)
             model.to('cuda')
             model.eval()
             height_pred = []

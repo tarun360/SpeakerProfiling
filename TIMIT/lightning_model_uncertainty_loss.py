@@ -36,7 +36,7 @@ class LightningModel(pl.LightningModule):
         self.uncertainty_loss = UncertaintyLoss()
 
         self.lr = HPARAMS['lr']
-
+        
         self.csv_path = HPARAMS['speaker_csv_path']
         self.df = pd.read_csv(self.csv_path)
         self.h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
@@ -57,8 +57,26 @@ class LightningModel(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-#         scheduler = LinearWarmupCosineAnnealingLR(optimizer, warmup_epochs=5, max_epochs=50)
-        return [optimizer]
+        scheduler = LinearWarmupCosineAnnealingLR(optimizer, warmup_epochs=5, max_epochs=50)
+        return [optimizer], [scheduler]
+
+#     def _configure_optim_classifier(self):
+#         # return optimizers and schedulers for pre-training
+#         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+#         return [optimizer]
+
+#     def _configure_optim_finetuneall(self):
+#         # return optimizers and scheduler for fine-tine
+#         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+#         lambdaFn = lambda epoch: 0.1 if epoch == 20 else 1
+#         lambdaScheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambdaFn)
+#         return [optimizer], [lambdaScheduler]
+
+#     def configure_optimizers(self):
+#         if self.mode == 'classifier':
+#             return self._configure_optim_classifier()
+#         elif self.mode == 'all':
+#             return self._configure_optim_finetuneall()
 
     def training_step(self, batch, batch_idx):
         x, y_h, y_a, y_g, x_len = batch

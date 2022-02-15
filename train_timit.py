@@ -4,7 +4,7 @@ from multiprocessing import Pool
 import os
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, Callback
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning import Trainer
@@ -12,6 +12,8 @@ from IPython import embed
 
 import torch
 import torch.utils.data as data
+
+from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 import random
 import numpy as np
 
@@ -138,7 +140,19 @@ if __name__ == "__main__":
         monitor='val/loss', 
         mode='min',
         verbose=1)
+    
+    lr_monitor = LearningRateMonitor(logging_interval='step')
 
+    # https://github.com/PyTorchLightning/pytorch-lightning/issues/3095
+    class ResetOptimScheduler(Callback):
+        def on_train_epoch_start(self, trainer, pl_module):
+            if trainer.current_epoch == 21:
+                new_optimizer = torch.optim.Adam(pl_module.parameters(), lr=1e-6)
+                new_scheduler = LinearWarmupCosineAnnealingLR(new_optimizer, warmup_epochs=5, max_epochs=50)
+                trainer.optimizers = [new_optimizer]
+                trainer.lr_schedulers = trainer.configure_schedulers([new_scheduler], monitor='val/loss', is_manual_optimization=False)
+                trainer.optimizer_frequencies = 1
+                
     trainer = Trainer(
         fast_dev_run=hparams.dev, 
         gpus=hparams.gpu, 
@@ -152,30 +166,15 @@ if __name__ == "__main__":
                 verbose=True,
                 mode='min'
                 ),
-            model_checkpoint_callback
+            model_checkpoint_callback,
+            lr_monitor,
+            ResetOptimScheduler()
         ],
         logger=logger,
         resume_from_checkpoint=hparams.model_checkpoint,
         distributed_backend='ddp',
-        auto_lr_find=True
+
         )
-    
-#     # Run learning rate finder
-#     lr_finder = trainer.tuner.lr_find(model, train_dataloader=trainloader, val_dataloaders=valloader)
-    
-#     # Results can be found in
-#     lr_finder.results
-
-#     # Plot with
-#     fig = lr_finder.plot(suggest=True)
-#     fig.savefig('auto_lr_find_plot.png')
-
-#     # Pick point based on plot, or get suggestion
-#     new_lr = lr_finder.suggestion()
-#     embed()
-#     print("new lr = ", new_lr)
-#     # update hparams of the model
-#     model.hparams.lr = new_lr
 
     # Fit model
     trainer.fit(model, train_dataloader=trainloader, val_dataloaders=valloader)

@@ -88,22 +88,16 @@ class UpstreamTransformerMoE5(nn.Module):
         super().__init__()
         self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
         
-        # Selecting the 9th encoder layer (out of 12)
-#         self.upstream.model.encoder.layers = self.upstream.model.encoder.layers[0:9]
-        
+        # phase 1
+#         for param in self.upstream.parameters():
+#             param.requires_grad = False
+       
+        # phase 2
         for param in self.upstream.parameters():
             param.requires_grad = True
-       
         for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
             param.requires_grad = False
-                
-#         for param in self.upstream.model.encoder.layers.parameters():
-#             param.requires_grad = True
 
-#         if unfreeze_last_conv_layers:
-#             for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
-#                 param.requires_grad = True
-        
         encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
         self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
         
