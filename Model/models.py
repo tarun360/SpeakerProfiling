@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from conformer.encoder import ConformerEncoder
 from IPython import embed
+from spafe.features.lpc import lpc, lpcc
 
 class UpstreamTransformer(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
