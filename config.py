@@ -9,7 +9,8 @@ class TIMITConfig(object):
 
     batch_size = 8
     epochs = 100
-    
+
+    wav_len = 16000 * 5    
     # loss = alpha * height_loss + beta * age_loss + gamma * gender_loss
     alpha = 1
     beta = 1
