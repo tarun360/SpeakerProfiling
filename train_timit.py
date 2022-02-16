@@ -43,7 +43,7 @@ def collate_fn(batch):
     (seq, height, age, gender) = zip(*batch)
     seql = [x.reshape(-1,) for x in seq]
     seq_length = [x.shape[0] for x in seql]
-    data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
+    data = rnn_utils.pad_sequence(seq, batch_first=True, padding_value=0)
     return data, height, age, gender, seq_length
 
 if __name__ == "__main__":
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_workers', type=int, default=TIMITConfig.n_workers)
     parser.add_argument('--dev', type=str, default=False)
     parser.add_argument('--model_checkpoint', type=str, default=TIMITConfig.model_checkpoint)
-    #     parser.add_argument('--noise_dataset_path', type=str, default=TIMITConfig.noise_dataset_path)
+    parser.add_argument('--wav_len', type=int, default=TIMITConfig.wav_len)
     parser.add_argument('--noise_dataset_path', type=str, default=None)
     parser.add_argument('--model_type', type=str, default=TIMITConfig.model_type)
     parser.add_argument('--upstream_model', type=str, default=TIMITConfig.upstream_model)

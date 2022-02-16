@@ -7,6 +7,8 @@ class TIMITConfig(object):
     # path to csv file containing age, heights of timit speakers
     speaker_csv_path = os.path.join(str(os.getcwd()), '/notebooks/SpeakerProfiling/Dataset/data_info_height_age.csv')
 
+    wav_len = 16000 * 5    
+
     batch_size = 8
     epochs = 100
     
@@ -46,7 +48,7 @@ class TIMITConfig(object):
     feature_dim = 768
 
     # No of GPUs for training and no of workers for datalaoders
-    gpu = '-1'
+    gpu = '0'
     n_workers = 0
 
     # model checkpoint to continue from
