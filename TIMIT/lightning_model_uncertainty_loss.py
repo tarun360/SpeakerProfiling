@@ -57,8 +57,9 @@ class LightningModel(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        scheduler = LinearWarmupCosineAnnealingLR(optimizer, warmup_epochs=5, max_epochs=50)
-        return [optimizer], [scheduler]
+#         lambdaFn = lambda epoch: 10 if epoch == 21 else 1
+#         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambdaFn)
+        return [optimizer]
 
 #     def _configure_optim_classifier(self):
 #         # return optimizers and schedulers for pre-training

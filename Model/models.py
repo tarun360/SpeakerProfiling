@@ -94,10 +94,16 @@ class UpstreamTransformerMoE5(nn.Module):
        
         # phase 2
         for param in self.upstream.parameters():
-            param.requires_grad = True
-        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
             param.requires_grad = False
+        for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
+            param.requires_grad = True
 
+        # phase 2
+#         for param in self.upstream.parameters():
+#             param.requires_grad = False
+#         for param in self.upstream.model.encoder.layers[-1].parameters():
+#             param.requires_grad = True
+        
         encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
         self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
         

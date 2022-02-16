@@ -144,14 +144,12 @@ if __name__ == "__main__":
     lr_monitor = LearningRateMonitor(logging_interval='step')
 
     # https://github.com/PyTorchLightning/pytorch-lightning/issues/3095
-    class ResetOptimScheduler(Callback):
-        def on_train_epoch_start(self, trainer, pl_module):
-            if trainer.current_epoch == 21:
-                new_optimizer = torch.optim.Adam(pl_module.parameters(), lr=1e-6)
-                new_scheduler = LinearWarmupCosineAnnealingLR(new_optimizer, warmup_epochs=5, max_epochs=50)
-                trainer.optimizers = [new_optimizer]
-                trainer.lr_schedulers = trainer.configure_schedulers([new_scheduler], monitor='val/loss', is_manual_optimization=False)
-                trainer.optimizer_frequencies = 1
+#     class ResetOptimScheduler(Callback):
+#         def on_train_epoch_start(self, trainer, pl_module):
+#             if trainer.current_epoch == 21:
+#                 new_optimizer = torch.optim.Adam(pl_module.parameters(), lr=1e-6)
+#                 trainer.optimizers = [new_optimizer]
+#                 trainer.optimizer_frequencies = 1
                 
     trainer = Trainer(
         fast_dev_run=hparams.dev, 
@@ -168,7 +166,7 @@ if __name__ == "__main__":
                 ),
             model_checkpoint_callback,
             lr_monitor,
-            ResetOptimScheduler()
+#             ResetOptimScheduler()
         ],
         logger=logger,
         resume_from_checkpoint=hparams.model_checkpoint,

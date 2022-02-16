@@ -47,7 +47,7 @@ class TIMITConfig(object):
 
     # No of GPUs for training and no of workers for datalaoders
     gpu = '-1'
-    n_workers = 0
+    n_workers = 4
 
     # model checkpoint to continue from
     model_checkpoint = None
