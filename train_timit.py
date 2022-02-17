@@ -39,6 +39,7 @@ elif TIMITConfig.loss == 'UncertaintyLoss':
     from TIMIT.lightning_model_uncertainty_loss import LightningModel
 
 import torch.nn.utils.rnn as rnn_utils
+from pytorch_lightning.plugins import DDPPlugin
 def collate_fn(batch):
     (seq, height, age, gender) = zip(*batch)
     seql = [x.reshape(-1,) for x in seq]
@@ -143,6 +144,7 @@ if __name__ == "__main__":
     trainer = Trainer(
         fast_dev_run=hparams.dev, 
         gpus=hparams.gpu, 
+        accelerator="ddp",
         max_epochs=hparams.epochs, 
         checkpoint_callback=True,
         callbacks=[
@@ -155,6 +157,7 @@ if __name__ == "__main__":
                 ),
             model_checkpoint_callback
         ],
+        plugins=DDPPlugin(find_unused_parameters=False),
         logger=logger,
         resume_from_checkpoint=hparams.model_checkpoint,
         distributed_backend='ddp'
