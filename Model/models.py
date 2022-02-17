@@ -13,13 +13,13 @@ class UpstreamTransformer(nn.Module):
         # Selecting the 9th encoder layer (out of 12)
         self.upstream.model.encoder.layers = self.upstream.model.encoder.layers[0:9]
         
-        downstream_backbone = resnet50(pretrained=True)
+        downstream_backbone = resnet50(pretrained=False)
         self.num_final_filters = downstream_backbone.fc.in_features
         feature_extractor_layer = list(downstream_backbone.children())[:-1]
         self.feature_extractor = nn.Sequential(*feature_extractor_layer)
         
         for param in self.upstream.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
         for param in self.feature_extractor.parameters():
             param.requires_grad = False
         
