@@ -4,6 +4,7 @@ from conformer.encoder import ConformerEncoder
 from IPython import embed
 from area_attention import AreaAttention, MultiHeadAreaAttention
 from .CompactBilinearPooling import CompactBilinearPooling
+import wavencoder
 
 class UpstreamTransformer(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
@@ -82,8 +83,8 @@ class UpstreamTransformer2(nn.Module):
         age = self.age_regressor(x)
         gender = self.gender_classifier(x)
         return height, age, gender
-    
-class UpstreamTransformerMoE5(nn.Module):
+
+class UpstreamTransformerCNN(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
         super().__init__()
         self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
@@ -97,6 +98,214 @@ class UpstreamTransformerMoE5(nn.Module):
             param.requires_grad = False
         for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
             param.requires_grad = True
+      
+        self.conv_features = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=(10, 10), stride=1),
+            nn.BatchNorm2d(num_features=32),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            
+            nn.Conv2d(32, 64, kernel_size=(3, 3), stride=1),
+            nn.BatchNorm2d(num_features=64),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            
+            nn.Conv2d(64, 128, kernel_size=(3, 3), stride=1),
+            nn.BatchNorm2d(num_features=128),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+        )
+    
+        self.bilstm = nn.LSTM(input_size=93, hidden_size=128, num_layers=2, batch_first=True, bidirectional=True)
+        self.dropout = nn.Dropout(0.5)
+
+        self.height_regressor = nn.Linear(256, 1)
+        self.age_regressor = nn.Linear(256, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(256, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        x = self.upstream(x)['last_hidden_state'].unsqueeze(dim=1)
+        o = self.conv_features(x)
+        o = torch.mean(o, dim=1)
+        o,c = self.bilstm(o)
+        o = torch.mean(o, dim=1)
+        gender = self.gender_classifier(o)
+        height = self.height_regressor(o)
+        age = self.age_regressor(o)
+        return height, age, gender    
+    
+class UpstreamTransformerCNN2(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        # phase 1
+        for param in self.upstream.parameters():
+            param.requires_grad = False
+       
+        # phase 2
+#         for param in self.upstream.parameters():
+#             param.requires_grad = False
+#         for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
+#             param.requires_grad = True
+      
+        self.conv_features = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=(1, 10), stride=1),
+            nn.BatchNorm2d(num_features=32),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            
+            nn.Conv2d(32, 64, kernel_size=(1, 5), stride=1),
+            nn.BatchNorm2d(num_features=64),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            
+            nn.Conv2d(64, 128, kernel_size=(1, 3), stride=1),
+            nn.BatchNorm2d(num_features=128),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+        )
+    
+        self.bilstm = nn.LSTM(input_size=92, hidden_size=128, num_layers=2, batch_first=True, bidirectional=True)
+        self.dropout = nn.Dropout(0.5)
+
+        self.height_regressor = nn.Linear(256, 1)
+        self.age_regressor = nn.Linear(256, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(256, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        x = self.upstream(x)['last_hidden_state'].unsqueeze(dim=1)
+        o = self.conv_features(x)
+        o = torch.mean(o, dim=1)
+        o,c = self.bilstm(o)
+        o = torch.mean(o, dim=1)
+        gender = self.gender_classifier(o)
+        height = self.height_regressor(o)
+        age = self.age_regressor(o)
+        return height, age, gender  
+    
+class UpstreamTransformerCNN3(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        # phase 1
+#         for param in self.upstream.parameters():
+#             param.requires_grad = False
+       
+        # phase 2
+        for param in self.upstream.parameters():
+            param.requires_grad = False
+        for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
+            param.requires_grad = True
+      
+        self.conv_features = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=(5, 5), stride=1),
+            nn.BatchNorm2d(num_features=32),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            
+            nn.Conv2d(32, 32, kernel_size=(3, 3), stride=1),
+            nn.BatchNorm2d(num_features=32),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+        )
+    
+        self.bilstm = nn.LSTM(input_size=190, hidden_size=128, num_layers=2, batch_first=True, bidirectional=True)
+        self.dropout = nn.Dropout(0.5)
+
+        self.height_regressor = nn.Linear(256, 1)
+        self.age_regressor = nn.Linear(256, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(256, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        x = self.upstream(x)['last_hidden_state'].unsqueeze(dim=1)
+        o = self.conv_features(x)
+        o = torch.mean(o, dim=1)
+        o,c = self.bilstm(o)
+        o = torch.mean(o, dim=1)
+        gender = self.gender_classifier(o)
+        height = self.height_regressor(o)
+        age = self.age_regressor(o)
+        return height, age, gender 
+  
+class UpstreamTransformerCNN4(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        # phase 1
+        for param in self.upstream.parameters():
+            param.requires_grad = False
+       
+        # phase 2
+#         for param in self.upstream.parameters():
+#             param.requires_grad = False
+#         for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
+#             param.requires_grad = True
+      
+        self.conv_features = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=(5, 5), stride=1),
+            nn.BatchNorm2d(num_features=32),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            
+            nn.Conv2d(32, 32, kernel_size=(3, 3), stride=1),
+            nn.BatchNorm2d(num_features=32),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+        )
+    
+        self.bilstm = nn.LSTM(input_size=190, hidden_size=128, num_layers=2, batch_first=True, bidirectional=True)
+        self.attention = wavencoder.layers.SoftAttention(128, 128)
+
+        self.height_regressor = nn.Linear(256, 1)
+        self.age_regressor = nn.Linear(256, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(256, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        x = self.upstream(x)['last_hidden_state'].unsqueeze(dim=1)
+        o = self.conv_features(x)
+        o = torch.mean(o, dim=1)
+        o,c = self.bilstm(o)
+        o = self.attention(o)
+        o = torch.mean(o, dim=1)
+        gender = self.gender_classifier(o)
+        height = self.height_regressor(o)
+        age = self.age_regressor(o)
+        return height, age, gender 
+
+    
+class UpstreamTransformerMoE5(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        # phase 1
+        for param in self.upstream.parameters():
+            param.requires_grad = False
+       
+        # phase 2
+#         for param in self.upstream.parameters():
+#             param.requires_grad = False
+#         for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
+#             param.requires_grad = True
 
         # phase 2
 #         for param in self.upstream.parameters():
