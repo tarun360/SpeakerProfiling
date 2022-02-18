@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import torch
 import numpy as np
+import time
 
 import torchaudio
 import wavencoder
@@ -72,14 +73,18 @@ class TIMITDataset(Dataset):
         height = self.df.loc[id, 'height']
         age =  self.df.loc[id, 'age']
 
+        """
         wav, fs = torchaudio.load(os.path.join(self.wav_folder, file))
 
         if self.is_train and self.train_transform:
             wav = self.train_transform(wav)  
         else:
             wav = self.test_transform(wav)
-        wav = torch.Tensor(lpcc(sig=wav, fs=fs, num_ceps=self.num_ceps, lifter=self.lifter, normalize=self.normalize))
         
+        wav = torch.Tensor(lpcc(sig=wav, fs=fs, num_ceps=self.num_ceps, lifter=self.lifter, normalize=self.normalize))
+        """
+        wav = torch.load(os.path.join(self.wav_folder, file))
+
         h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
         h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
         a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
