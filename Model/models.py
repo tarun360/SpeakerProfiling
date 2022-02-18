@@ -9,14 +9,14 @@ class UpstreamTransformer(nn.Module):
         self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
         
         # Selecting the 9th encoder layer (out of 12)
-        self.upstream.model.encoder.layers = self.upstream.model.encoder.layers[0:9]
+        #self.upstream.model.encoder.layers = self.upstream.model.encoder.layers[0:9]
         
         for param in self.upstream.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
         
-        if unfreeze_last_conv_layers:
-            for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
-                param.requires_grad = True
+        #if unfreeze_last_conv_layers:
+        #    for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
+        #        param.requires_grad = True
         
         self.transformer_encoder_1 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True), num_layers=num_layers)
         self.transformer_encoder_2 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True), num_layers=num_layers)
@@ -38,9 +38,7 @@ class UpstreamTransformer(nn.Module):
 
     def forward(self, x, x_len):
         x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
-        print(x)
         x = self.upstream(x)['last_hidden_state']
-        print(x.size())
         output_1 = self.transformer_encoder_1(x)
         output_2 = self.transformer_encoder_2(x)
         output_3 = self.transformer_encoder_3(x)
