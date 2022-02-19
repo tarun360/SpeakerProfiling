@@ -6,7 +6,7 @@ from spafe.features.lpc import lpc, lpcc
 from torchvision.models import resnet50
 
 class UpstreamTransformer(nn.Module):
-    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=13, unfreeze_last_conv_layers=False):
         super().__init__()
         
         # for param in self.upstream.parameters():
@@ -16,37 +16,34 @@ class UpstreamTransformer(nn.Module):
         #     for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
         #         param.requires_grad = True
         
-        downstream_backbone = resnet50(pretrained=True)
-        self.num_final_filters = downstream_backbone.fc.in_features
-        feature_extractor_layer = list(downstream_backbone.children())[:-1]
-        self.feature_extractor = nn.Sequential(*feature_extractor_layer)
         
-        for param in self.feature_extractor.parameters():
-            param.requires_grad = False
-                
+        self.transformer_encoder_1 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=13, batch_first=True), num_layers=num_layers)
+        self.transformer_encoder_2 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=13, batch_first=True), num_layers=num_layers)
+        self.transformer_encoder_3 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=13, batch_first=True), num_layers=num_layers)
+        self.feature_dims = 6578
         self.height_regressor = nn.Sequential(
-            nn.Linear(self.num_final_filters, 128),
+            nn.Linear(self.feature_dims, 128),
+            nn.ReLU(),
             nn.Linear(128, 1),
         )
         self.age_regressor = nn.Sequential(
-            nn.Linear(self.num_final_filters, 128),
+            nn.Linear(self.feature_dims, 128),
+            nn.ReLU(),
             nn.Linear(128, 1),
         )
         self.gender_classifier = nn.Sequential(
-            nn.Linear(self.num_final_filters, 128),
+            nn.Linear(self.feature_dims, 128),
             nn.Linear(128, 1),
             nn.Sigmoid()
         )
 
     def forward(self, x, x_len):
-        x = torch.repeat_interleave(x.unsqueeze(1), 3, dim=1)
-        x = self.feature_extractor(x).squeeze().squeeze()
-        height = self.height_regressor(x)
-        age = self.age_regressor(x)
-        gender = self.gender_classifier(x)
-        height = self.height_regressor(x)
-        age = self.age_regressor(x)
-        gender = self.gender_classifier(x)
+        height_feature = self.transformer_encoder_1(x).flatten(start_dim=1)
+        age_feature = self.transformer_encoder_2(x).flatten(start_dim=1)
+        gender_feature = self.transformer_encoder_3(x).flatten(start_dim=1)
+        height = self.height_regressor(height_feature)
+        age = self.age_regressor(age_feature)
+        gender = self.gender_classifier(gender_feature)
         return height, age, gender
 
 # height only models
