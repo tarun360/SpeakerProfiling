@@ -43,7 +43,7 @@ class TIMITConfig(object):
     # For wav2vec2, feature_dim = 768
     # For npc, feature_dim = 512
     # For tera, feature_dim = 768
-    feature_dim = 768
+    feature_dim = 114432# 768
 
     # No of GPUs for training and no of workers for datalaoders
     gpu = '-1'

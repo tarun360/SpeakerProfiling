@@ -11,8 +11,8 @@ class UpstreamTransformer(nn.Module):
         # Selecting the 9th encoder layer (out of 12)
         #self.upstream.model.encoder.layers = self.upstream.model.encoder.layers[0:9]
         
-        for param in self.upstream.parameters():
-            param.requires_grad = True
+        #for param in self.upstream.parameters():
+        #    param.requires_grad = True
         
         #if unfreeze_last_conv_layers:
         #    for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
@@ -39,12 +39,12 @@ class UpstreamTransformer(nn.Module):
     def forward(self, x, x_len):
         x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
         x = self.upstream(x)['last_hidden_state']
-        output_1 = self.transformer_encoder_1(x)
-        output_2 = self.transformer_encoder_2(x)
-        output_3 = self.transformer_encoder_3(x)
-        output_averaged_1 = torch.mean(output_1, dim=1)
-        output_averaged_2 = torch.mean(output_2, dim=1)
-        output_averaged_3 = torch.mean(output_3, dim=1)
+        output_1 = self.transformer_encoder_1(x).flatten(start_dim=1)
+        output_2 = self.transformer_encoder_2(x).flatten(start_dim=1)
+        output_3 = self.transformer_encoder_3(x).flatten(start_dim=1)
+        output_averaged_1 = output_1.flatten(start_dim=1)#torch.mean(output_1, dim=1)
+        output_averaged_2 = output_2.flatten(start_dim=2)#torch.mean(output_2, dim=1)
+        output_averaged_3 = output_3.flatten(start_dim=3)#torch.mean(output_3, dim=1)
         height = self.height_regressor(output_averaged_1)
         age = self.age_regressor(output_averaged_2)
         gender = self.gender_classifier(output_averaged_3)
