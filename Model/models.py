@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
+import time
 from conformer.encoder import ConformerEncoder
 from IPython import embed
 from spafe.features.lpc import lpc, lpcc
-from torchvision.models import resnet50
+from torchvision.models import resnet34, resnet50
 
 class UpstreamTransformer(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=13, unfreeze_last_conv_layers=False):
@@ -16,10 +17,10 @@ class UpstreamTransformer(nn.Module):
         #     for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
         #         param.requires_grad = True
         
-        
         self.transformer_encoder_1 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=13, batch_first=True), num_layers=num_layers)
         self.transformer_encoder_2 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=13, batch_first=True), num_layers=num_layers)
         self.transformer_encoder_3 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=13, batch_first=True), num_layers=num_layers)
+
         self.feature_dims = 6578
         self.height_regressor = nn.Sequential(
             nn.Linear(self.feature_dims, 128),

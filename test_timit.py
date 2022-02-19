@@ -29,7 +29,7 @@ def collate_fn(batch):
     (seq, height, age, gender) = zip(*batch)
     seql = [x.reshape(-1,) for x in seq]
     seq_length = [x.shape[0] for x in seql]
-    data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
+    data = rnn_utils.pad_sequence(seq, batch_first=True, padding_value=0)
     return data, height, age, gender, seq_length
 
 if __name__ == "__main__":
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     # Testing Dataset
     test_set = TIMITDataset(
-        wav_folder = os.path.join(hparams.data_path, 'TEST'),
+        wav_folder = os.path.join(hparams.data_path, 'lpcc_TEST'),
         hparams = hparams,
         is_train=False
     )
