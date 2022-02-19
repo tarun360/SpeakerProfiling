@@ -4,6 +4,7 @@ from conformer.encoder import ConformerEncoder
 from IPython import embed
 from area_attention import AreaAttention, MultiHeadAreaAttention
 from .CompactBilinearPooling import CompactBilinearPooling
+from .AttentiveStatisticalPooling import AttensiveStatisticsPooling
 
 class UpstreamTransformer(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
@@ -90,13 +91,13 @@ class UpstreamTransformerMoE5(nn.Module):
         
         # phase 1
 #         for param in self.upstream.parameters():
-#             param.requires_grad = False
+#             param.requires_grad = True
        
         # phase 2
         for param in self.upstream.parameters():
-            param.requires_grad = False
-        for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
             param.requires_grad = True
+        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
+            param.requires_grad = False
 
         # phase 2
 #         for param in self.upstream.parameters():
@@ -104,10 +105,10 @@ class UpstreamTransformerMoE5(nn.Module):
 #         for param in self.upstream.model.encoder.layers[-1].parameters():
 #             param.requires_grad = True
         
-        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True, dropout=0.5)
         self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
         
-        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True, dropout=0.5)
         self.transformer_encoder_F = torch.nn.TransformerEncoder(encoder_layer_F, num_layers=num_layers)
         
         self.fcM = nn.Linear(2*feature_dim, 1024)
@@ -131,6 +132,95 @@ class UpstreamTransformerMoE5(nn.Module):
         xF = self.dropout(torch.cat((torch.mean(xF, dim=1), torch.std(xF, dim=1)), dim=1))
         xM = self.dropout(self.fcM(xM))
         xF = self.dropout(self.fcF(xF))
+        gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
+        output = (1-gender)*xM + gender*xF
+        height = self.height_regressor(output)
+        age = self.age_regressor(output)
+        return height, age, gender
+
+class UpstreamTransformerMoE5SingleFc(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        # phase 1
+#         for param in self.upstream.parameters():
+#             param.requires_grad = False
+       
+        # phase 2
+        for param in self.upstream.parameters():
+            param.requires_grad = True
+        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
+            param.requires_grad = False
+        
+        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
+        
+        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.transformer_encoder_F = torch.nn.TransformerEncoder(encoder_layer_F, num_layers=num_layers)
+        
+        self.dropout = nn.Dropout(0.5)
+
+        self.height_regressor = nn.Linear(2*feature_dim, 1)
+        self.age_regressor = nn.Linear(2*feature_dim, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(4*feature_dim, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        x = self.upstream(x)['last_hidden_state']
+        xM = self.transformer_encoder_M(x)
+        xF = self.transformer_encoder_F(x)
+        xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))
+        xF = self.dropout(torch.cat((torch.mean(xF, dim=1), torch.std(xF, dim=1)), dim=1))
+        gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
+        output = (1-gender)*xM + gender*xF
+        height = self.height_regressor(output)
+        age = self.age_regressor(output)
+        return height, age, gender
+   
+class UpstreamTransformerMoE5SingleFcAttn(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        # phase 1
+#         for param in self.upstream.parameters():
+#             param.requires_grad = False
+       
+        # phase 2
+        for param in self.upstream.parameters():
+            param.requires_grad = True
+        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
+            param.requires_grad = False
+        
+        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
+        
+        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.transformer_encoder_F = torch.nn.TransformerEncoder(encoder_layer_F, num_layers=num_layers)
+        
+        self.attentive_statistical_pooling_M = AttensiveStatisticsPooling(feature_dim, 64)
+        self.attentive_statistical_pooling_F = AttensiveStatisticsPooling(feature_dim, 64)
+        
+        self.dropout = nn.Dropout(0.5)
+
+        self.height_regressor = nn.Linear(2*feature_dim, 1)
+        self.age_regressor = nn.Linear(2*feature_dim, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(4*feature_dim, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        x = self.upstream(x)['last_hidden_state']
+        xM = self.transformer_encoder_M(x)
+        xF = self.transformer_encoder_F(x)
+        xM = self.dropout(self.attentive_statistical_pooling_M(torch.transpose(xM, 1, 2)))
+        xF = self.dropout(self.attentive_statistical_pooling_F(torch.transpose(xF, 1, 2)))
         gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
         output = (1-gender)*xM + gender*xF
         height = self.height_regressor(output)

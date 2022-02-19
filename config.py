@@ -27,14 +27,14 @@ class TIMITConfig(object):
     
     ## H
     # wav2vecTransformer
-    model_type = 'UpstreamTransformerMoE5'
+    model_type = 'UpstreamTransformerMoE5SingleFcAttn'
 
     # RMSE, UncertaintyLoss
     loss = "UncertaintyLoss"
     
     # upstream model to be loaded from s3prl. Some of the upstream models are: wav2vec2, TERA, mockingjay etc.
     #See the available models here: https://github.com/s3prl/s3prl/blob/master/s3prl/upstream/README.md
-    upstream_model = 'wav2vec2'
+    upstream_model = 'hubert'
 
     # number of layers in encoder (transformers)
     num_layers = 6

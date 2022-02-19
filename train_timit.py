@@ -20,15 +20,8 @@ import numpy as np
 
 # SEED
 def seed_torch(seed=100):
-    random.seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed) # if you are using multi-GPU.
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
     pl.utilities.seed.seed_everything(seed)
+    torch.manual_seed(seed)
 
 seed_torch()
 

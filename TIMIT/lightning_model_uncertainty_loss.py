@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 # torch.use_deterministic_algorithms(True)
+from IPython import embed
 
 import pytorch_lightning as pl
 from pytorch_lightning.metrics.regression import MeanAbsoluteError as MAE
@@ -12,7 +13,7 @@ from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 import pandas as pd
 import torch_optimizer as optim
 
-from Model.models import UpstreamTransformer, UpstreamTransformerMoE5, UpstreamTransformer2, UpstreamTransformerMoE6, UpstreamTransformerMoE8, UpstreamTransformerMoE7, UpstreamTransformerMoE9, UpstreamTransformerMoE10, UpstreamTransformerMoE11, UpstreamTransformerMoE12, UpstreamTransformerMoE13, UpstreamTransformerMoE14, UpstreamTransformerMoE15, UpstreamTransformerMoE16, UpstreamTransformerMoE17, UpstreamTransformerMoE20, UpstreamTransformerMoE5Bilinear
+from Model.models import UpstreamTransformer, UpstreamTransformerMoE5, UpstreamTransformer2, UpstreamTransformerMoE6, UpstreamTransformerMoE8, UpstreamTransformerMoE7, UpstreamTransformerMoE9, UpstreamTransformerMoE10, UpstreamTransformerMoE11, UpstreamTransformerMoE12, UpstreamTransformerMoE13, UpstreamTransformerMoE14, UpstreamTransformerMoE15, UpstreamTransformerMoE16, UpstreamTransformerMoE17, UpstreamTransformerMoE20, UpstreamTransformerMoE5Bilinear,UpstreamTransformerMoE5SingleFc, UpstreamTransformerMoE5SingleFcAttn
 
 from Model.utils import RMSELoss, UncertaintyLoss
 
@@ -24,7 +25,9 @@ class LightningModel(pl.LightningModule):
         self.models = {
             'UpstreamTransformer': UpstreamTransformer,
             'UpstreamTransformerMoE5Bilinear': UpstreamTransformerMoE5Bilinear,
-            'UpstreamTransformerMoE5': UpstreamTransformerMoE5
+            'UpstreamTransformerMoE5': UpstreamTransformerMoE5,
+            'UpstreamTransformerMoE5SingleFc': UpstreamTransformerMoE5SingleFc,
+            'UpstreamTransformerMoE5SingleFcAttn': UpstreamTransformerMoE5SingleFcAttn
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
@@ -47,7 +50,7 @@ class LightningModel(pl.LightningModule):
         print(f"Model Details: #Params = {self.count_total_parameters()}\t#Trainable Params = {self.count_trainable_parameters()}")
 
     def count_total_parameters(self):
-            return sum(p.numel() for p in self.parameters())
+        return sum(p.numel() for p in self.parameters())
     
     def count_trainable_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
@@ -57,27 +60,7 @@ class LightningModel(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-#         lambdaFn = lambda epoch: 10 if epoch == 21 else 1
-#         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambdaFn)
         return [optimizer]
-
-#     def _configure_optim_classifier(self):
-#         # return optimizers and schedulers for pre-training
-#         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-#         return [optimizer]
-
-#     def _configure_optim_finetuneall(self):
-#         # return optimizers and scheduler for fine-tine
-#         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-#         lambdaFn = lambda epoch: 0.1 if epoch == 20 else 1
-#         lambdaScheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambdaFn)
-#         return [optimizer], [lambdaScheduler]
-
-#     def configure_optimizers(self):
-#         if self.mode == 'classifier':
-#             return self._configure_optim_classifier()
-#         elif self.mode == 'all':
-#             return self._configure_optim_finetuneall()
 
     def training_step(self, batch, batch_idx):
         x, y_h, y_a, y_g, x_len = batch

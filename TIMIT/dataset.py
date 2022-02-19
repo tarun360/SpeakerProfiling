@@ -28,17 +28,16 @@ class TIMITDataset(Dataset):
         self.df.set_index('ID', inplace=True)
         self.gender_dict = {'M' : 0.0, 'F' : 1.0}
 
-        if self.noise_dataset_path:
-            self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.AdditiveNoise(self.noise_dataset_path, p=0.5),
-                wavencoder.transforms.Clipping(p=0.5),
-                ])
-        elif self.speed_change:
-            self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.SpeedChange(factor_range=(-0.1, 0.1), p=0.5),
-                ])
+        if self.is_train:
+            self.padCropTransform = wavencoder.transforms.Compose([
+                    wavencoder.transforms.PadCrop(pad_crop_length=32000, pad_position='random', crop_position='random'),
+            ])
         else:
-            self.train_transform = None
+            self.padCropTransform = wavencoder.transforms.Compose([
+                    wavencoder.transforms.PadCrop(pad_crop_length=32000, pad_position='center', crop_position='center'),
+            ])    
+        
+        self.train_transform = None
 
         self.test_transform = None
 
@@ -68,9 +67,8 @@ class TIMITDataset(Dataset):
         
         if(wav.shape[0] != 1):
             wav = torch.mean(wav, dim=0)
-
-        if self.is_train and self.train_transform:
-            wav = self.train_transform(wav)  
+            
+#         wav = self.padCropTransform(wav)
         
         h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
         h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
@@ -95,8 +93,7 @@ class TIMITDataset(Dataset):
             if(mixup_wav.shape[0] != 1):
                 mixup_wav = torch.mean(mixup_wav, dim=0)
 
-            if self.is_train and self.train_transform:
-                mixup_wav = self.train_transform(mixup_wav)  
+#             mixup_wav = self.padCropTransform(mixup_wav)
 
             mixup_height = (mixup_height - h_mean)/h_std
             mixup_age = (mixup_age - a_mean)/a_std
