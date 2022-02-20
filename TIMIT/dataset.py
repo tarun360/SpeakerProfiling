@@ -20,6 +20,7 @@ class TIMITDataset(Dataset):
         self.df = pd.read_csv(self.csv_file)
         self.is_train = is_train
         self.noise_dataset_path = hparams.noise_dataset_path
+        self.wav_len = hparams.wav_len
         self.data_type = hparams.data_type
         self.speed_change = hparams.speed_change
 
@@ -37,9 +38,14 @@ class TIMITDataset(Dataset):
                 wavencoder.transforms.SpeedChange(factor_range=(-0.1, 0.1), p=0.5),
                 ])
         else:
-            self.train_transform = None
+            self.train_transform = wavencoder.transforms.Compose([
+                wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='left', crop_position='random'),
+                wavencoder.transforms.Clipping(p=0.5),
+            ]) 
 
-        self.test_transform = None
+        self.test_transform = wavencoder.transforms.Compose([
+            wavencoder.transforms.PadCrop(pad_crop_length=hparams.wav_len, pad_position='left', crop_position='center')
+        ])
 
     def __len__(self):
         return len(self.files)
@@ -71,7 +77,8 @@ class TIMITDataset(Dataset):
 
         if self.is_train and self.train_transform:
             wav = self.train_transform(wav)  
-        
+        else:
+            wav = self.test_transform(wav)
         h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
         h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
         a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()

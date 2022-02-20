@@ -18,20 +18,22 @@ class UpstreamTransformer(nn.Module):
             for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
                 param.requires_grad = True
         
-        self.transformer_encoder_1 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True), num_layers=num_layers)
-        self.transformer_encoder_2 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True), num_layers=num_layers)
-        self.transformer_encoder_3 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True), num_layers=num_layers)
+        self.transformer_encoder_1 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=6, batch_first=True), num_layers=num_layers)
+        self.transformer_encoder_2 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=6, batch_first=True), num_layers=num_layers)
+        self.transformer_encoder_3 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=6, batch_first=True), num_layers=num_layers)
+        
+        self.final_feature_dim = 114432
         
         self.height_regressor = nn.Sequential(
-            nn.Linear(feature_dim, 128),
+            nn.Linear(self.final_feature_dim, 128),
             nn.Linear(128, 1),
         )
         self.age_regressor = nn.Sequential(
-            nn.Linear(feature_dim, 128),
+            nn.Linear(self.final_feature_dim, 128),
             nn.Linear(128, 1),
         )
         self.gender_classifier = nn.Sequential(
-            nn.Linear(feature_dim, 128),
+            nn.Linear(self.final_feature_dim, 128),
             nn.Linear(128, 1),
             nn.Sigmoid()
         )
