@@ -26,14 +26,17 @@ class UpstreamTransformer(nn.Module):
         
         self.height_regressor = nn.Sequential(
             nn.Linear(self.final_feature_dim, 128),
+            nn.GELU(),
             nn.Linear(128, 1),
         )
         self.age_regressor = nn.Sequential(
             nn.Linear(self.final_feature_dim, 128),
+            nn.GELU(),
             nn.Linear(128, 1),
         )
         self.gender_classifier = nn.Sequential(
             nn.Linear(self.final_feature_dim, 128),
+            nn.GELU(),
             nn.Linear(128, 1),
             nn.Sigmoid()
         )
