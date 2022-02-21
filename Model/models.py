@@ -158,10 +158,10 @@ class UpstreamTransformerMoE5(nn.Module):
 #         for param in self.upstream.model.encoder.layers[-1].parameters():
 #             param.requires_grad = True
         
-        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True, dropout=0.5)
+        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
         self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
         
-        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True, dropout=0.5)
+        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
         self.transformer_encoder_F = torch.nn.TransformerEncoder(encoder_layer_F, num_layers=num_layers)
         
         self.fcM = nn.Linear(2*feature_dim, 1024)
@@ -279,7 +279,7 @@ class UpstreamTransformerMoE5SingleFcAttn(nn.Module):
         height = self.height_regressor(output)
         age = self.age_regressor(output)
         return height, age, gender
-
+    
 class UpstreamTransformerMoE5Bilinear(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
         super().__init__()

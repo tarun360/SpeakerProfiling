@@ -59,17 +59,21 @@ class LightningModel(pl.LightningModule):
     def forward(self, x, x_len):
         return self.model(x, x_len)
 
+#     def configure_optimizers(self):
+#         optimizer = torch.optim.SGD(self.parameters(), lr=self.lr, momentum=0.9, weight_decay=1e-4)
+#         scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=1000)
+#         return {
+#         "optimizer": optimizer,
+#         "lr_scheduler": {
+#                 "scheduler": scheduler,
+#                 "interval": "step",
+#             },
+#         }
+#         return [optimizer], [scheduler]
+    
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.parameters(), lr=self.lr, momentum=0.9, weight_decay=1e-4)
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=1000)
-        return {
-        "optimizer": optimizer,
-        "lr_scheduler": {
-                "scheduler": scheduler,
-                "interval": "step",
-            },
-        }
-        return [optimizer], [scheduler]
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        return [optimizer]
 
     def training_step(self, batch, batch_idx):
         x, y_h, y_a, y_g, x_len = batch
