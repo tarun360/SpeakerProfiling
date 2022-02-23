@@ -16,6 +16,7 @@ class TIMITDataset(Dataset):
     is_train=True,
     ):
         self.wav_folder = wav_folder
+        self.lpcc_wav_folder = self.wav_folder[:14] + 'lpcc_' + self.wav_folder[14:]
         self.files = os.listdir(self.wav_folder)
         self.csv_file = hparams.speaker_csv_path
         self.df = pd.read_csv(self.csv_file)
@@ -40,7 +41,7 @@ class TIMITDataset(Dataset):
                 ])
         else:
             self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='left', crop_position='random'),
+                wavencoder.transforms.PadCrop(pad_crop_length=self.wav_len, pad_position='left', crop_position='center'),
                 wavencoder.transforms.Clipping(p=0.5),
             ]) 
 
@@ -81,6 +82,7 @@ class TIMITDataset(Dataset):
         else:
             wav = self.test_transform(wav)
         wav_mfcc = mfcc_module(wav).transpose(1, 2)
+        wav_lpcc = torch.load(os.path.join(self.wav_folder, file[:-3] + 'pt'))
         h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
         h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
         a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
@@ -89,4 +91,4 @@ class TIMITDataset(Dataset):
         height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
 
-        return wav, wav_mfcc, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
+        return wav, wav_mfcc, wav_lpcc, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])
