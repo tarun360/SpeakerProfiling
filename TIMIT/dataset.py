@@ -72,7 +72,7 @@ class TIMITDataset(Dataset):
         # self.get_age(id)
 
         wav, sig = torchaudio.load(os.path.join(self.wav_folder, file))
-        mfcc_module = MFCC(sample_rate=sig, n_mfcc=32, melkwargs={"n_fft": 2048, "hop_length": 512, "power": 2})
+        mfcc_module = MFCC(sample_rate=sig, n_mfcc=128, melkwargs={"n_fft": 2048, "hop_length": 512, "power": 2})
         if(wav.shape[0] != 1):
             wav = torch.mean(wav, dim=0)
 
