@@ -100,13 +100,13 @@ if __name__ == "__main__":
             gender_true = []
 
             for batch in tqdm(testloader):
-                x, x_mfcc, y_h, y_a, y_g, x_len = batch
+                x, x_mfcc, x_lpcc, y_h, y_a, y_g, x_len = batch
                 x = x.to('cuda')
                 y_h = torch.stack(y_h).reshape(-1,)
                 y_a = torch.stack(y_a).reshape(-1,)
                 y_g = torch.stack(y_g).reshape(-1,)
                 
-                y_hat_h, y_hat_a, y_hat_g = model(x, x_mfcc, x_len)
+                y_hat_h, y_hat_a, y_hat_g = model(x, x_mfcc, x_lpcc, x_len)
                 y_hat_h = y_hat_h.to('cpu')
                 y_hat_a = y_hat_a.to('cpu')
                 y_hat_g = y_hat_g.to('cpu')
@@ -156,7 +156,7 @@ if __name__ == "__main__":
             gender_true = []
 
             for batch in tqdm(testloader):
-                x, x_mfcc, y_h, y_a, y_g, x_len = batch
+                x, x_mfcc, x_lpcc, y_h, y_a, y_g, x_len = batch
                 y_h = torch.stack(y_h).reshape(-1,)
 
                 for i in range(x.shape[0]):
