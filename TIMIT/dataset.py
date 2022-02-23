@@ -82,7 +82,7 @@ class TIMITDataset(Dataset):
         else:
             wav = self.test_transform(wav)
         wav_mfcc = mfcc_module(wav).transpose(1, 2)
-        wav_lpcc = torch.load(os.path.join(self.wav_folder, file[:-3] + 'pt'))
+        wav_lpcc = torch.load(os.path.join(self.lpcc_wav_folder, file[:-3] + 'pt'))
         h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
         h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
         a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()

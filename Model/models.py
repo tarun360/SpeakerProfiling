@@ -21,7 +21,7 @@ class UpstreamTransformer(nn.Module):
         self.transformer_encoder_1 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True), num_layers=num_layers)
         #self.transformer_encoder_2 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=self.mfcc_feature_dim, nhead=8, batch_first=True), num_layers=num_layers)
         
-        self.final_feature_dim = 896
+        self.final_feature_dim = 916
         
         self.height_regressor = nn.Sequential(
             nn.Linear(self.final_feature_dim, 256),
@@ -38,7 +38,7 @@ class UpstreamTransformer(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, x, mfcc_x, x_len):
+    def forward(self, x, mfcc_x, lpcc_x, x_len):
         x = [wav for (i,wav) in enumerate(x.squeeze(1))]
         x = self.upstream(x)['last_hidden_state']
         output_1 = self.transformer_encoder_1(x)
@@ -46,7 +46,9 @@ class UpstreamTransformer(nn.Module):
         output_2 = mfcc_x.squeeze(1).cuda()
         output_averaged_1 = torch.mean(output_1, dim=1)
         output_averaged_2 = torch.mean(output_2, dim=1)
-        concat_output = torch.cat((output_averaged_1, output_averaged_2), dim=-1)
+        output_averaged_3 = torch.mean(lpcc_x, dim=1)
+
+        concat_output = torch.cat((output_averaged_1, output_averaged_2, output_averaged_3), dim=-1)
         height = self.height_regressor(concat_output)
         age = self.age_regressor(concat_output)
         gender = self.gender_classifier(concat_output)
