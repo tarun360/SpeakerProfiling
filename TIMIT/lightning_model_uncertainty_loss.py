@@ -13,7 +13,7 @@ from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 import pandas as pd
 import torch_optimizer as optim
 
-from Model.models import UpstreamTransformer, UpstreamTransformerMoE5, UpstreamTransformer2, UpstreamTransformerMoE6, UpstreamTransformerMoE8, UpstreamTransformerMoE7, UpstreamTransformerMoE9, UpstreamTransformerMoE10, UpstreamTransformerMoE11, UpstreamTransformerMoE12, UpstreamTransformerMoE13, UpstreamTransformerMoE14, UpstreamTransformerMoE15, UpstreamTransformerMoE16, UpstreamTransformerMoE17, UpstreamTransformerMoE20, UpstreamTransformerMoE5Bilinear,UpstreamTransformerMoE5SingleFc, UpstreamTransformerMoE5SingleFcAttn, UpstreamVqapc
+from Model.models import UpstreamTransformer, UpstreamTransformerMoE5, UpstreamTransformer2, UpstreamTransformerMoE6, UpstreamTransformerMoE8, UpstreamTransformerMoE7, UpstreamTransformerMoE9, UpstreamTransformerMoE10, UpstreamTransformerMoE11, UpstreamTransformerMoE12, UpstreamTransformerMoE13, UpstreamTransformerMoE14, UpstreamTransformerMoE15, UpstreamTransformerMoE16, UpstreamTransformerMoE17, UpstreamTransformerMoE20, UpstreamTransformerMoE5Bilinear,UpstreamTransformerMoE5SingleFc, UpstreamTransformerMoE5SingleFcAttn, UpstreamVqapc, UpstreamTransformerSingleFc, UpstreamTransformerMoE5DiffLayer, UpstreamTransformerMoE5DiffLayer2, UpstreamTransformerMoE5BilinearFirstLast, UpstreamTransformerMoE5BilinearFourthFifth, UpstreamTransformerMoE5Avg, UpstreamTransformerMoE5Concat
 
 from Model.utils import RMSELoss, UncertaintyLoss
 
@@ -28,7 +28,14 @@ class LightningModel(pl.LightningModule):
             'UpstreamTransformerMoE5': UpstreamTransformerMoE5,
             'UpstreamTransformerMoE5SingleFc': UpstreamTransformerMoE5SingleFc,
             'UpstreamTransformerMoE5SingleFcAttn': UpstreamTransformerMoE5SingleFcAttn,
-            'UpstreamVqapc': UpstreamVqapc
+            'UpstreamVqapc': UpstreamVqapc,
+            'UpstreamTransformerSingleFc': UpstreamTransformerSingleFc,
+            'UpstreamTransformerMoE5DiffLayer': UpstreamTransformerMoE5DiffLayer,
+            'UpstreamTransformerMoE5DiffLayer2': UpstreamTransformerMoE5DiffLayer2,
+            'UpstreamTransformerMoE5BilinearFirstLast': UpstreamTransformerMoE5BilinearFirstLast,
+            'UpstreamTransformerMoE5BilinearFourthFifth': UpstreamTransformerMoE5BilinearFourthFifth, 
+            'UpstreamTransformerMoE5Avg': UpstreamTransformerMoE5Avg,
+            'UpstreamTransformerMoE5Concat': UpstreamTransformerMoE5Concat
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
@@ -60,8 +67,8 @@ class LightningModel(pl.LightningModule):
         return self.model(x, x_len)
 
 #     def configure_optimizers(self):
-#         optimizer = torch.optim.SGD(self.parameters(), lr=self.lr, momentum=0.9, weight_decay=1e-4)
-#         scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=1000)
+#         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=1e-3)
+#         scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=1500)
 #         return {
 #         "optimizer": optimizer,
 #         "lr_scheduler": {
@@ -85,7 +92,7 @@ class LightningModel(pl.LightningModule):
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
 
-        loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_a, y_hat_g)), torch.cat((y_h, y_a, y_g)))
+        loss_var, loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_a, y_hat_g)), torch.cat((y_h, y_a, y_g)))
 
         height_mae = self.mae_criterion(y_hat_h*self.h_std+self.h_mean, y_h*self.h_std+self.h_mean)
         age_mae =self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
@@ -93,7 +100,8 @@ class LightningModel(pl.LightningModule):
 
         # self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=False)
 
-        return {'loss':loss, 
+        return {'loss':loss_var, 
+                'actual_loss': loss,
                 'train_height_mae':height_mae.item(),
                 'train_age_mae':age_mae.item(),
                 'train_gender_acc':gender_acc,
@@ -102,11 +110,13 @@ class LightningModel(pl.LightningModule):
     def training_epoch_end(self, outputs):
         n_batch = len(outputs)
         loss = torch.tensor([x['loss'] for x in outputs]).mean()
+        actual_loss = torch.tensor([x['actual_loss'] for x in outputs]).mean()
         height_mae = torch.tensor([x['train_height_mae'] for x in outputs]).sum()/n_batch
         age_mae = torch.tensor([x['train_age_mae'] for x in outputs]).sum()/n_batch
         gender_acc = torch.tensor([x['train_gender_acc'] for x in outputs]).mean()
 
         self.log('train/loss' , loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('train/actual_loss' , actual_loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log('train/h',height_mae.item(), on_step=False, on_epoch=True, prog_bar=True)
         self.log('train/a',age_mae.item(), on_step=False, on_epoch=True, prog_bar=True)
         self.log('train/g',gender_acc, on_step=False, on_epoch=True, prog_bar=True)
@@ -121,13 +131,14 @@ class LightningModel(pl.LightningModule):
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
 
-        loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_a, y_hat_g)), torch.cat((y_h, y_a, y_g)))
+        loss_var, loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_a, y_hat_g)), torch.cat((y_h, y_a, y_g)))
 
         height_mae = self.mae_criterion(y_hat_h*self.h_std+self.h_mean, y_h*self.h_std+self.h_mean)
         age_mae = self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
-        return {'val_loss':loss, 
+        return {'val_loss':loss_var, 
+                'actual_loss': loss,
                 'val_height_mae':height_mae.item(),
                 'val_age_mae':age_mae.item(),
                 'val_gender_acc':gender_acc}
@@ -135,11 +146,13 @@ class LightningModel(pl.LightningModule):
     def validation_epoch_end(self, outputs):
         n_batch = len(outputs)
         val_loss = torch.tensor([x['val_loss'] for x in outputs]).mean()
+        actual_loss = torch.tensor([x['actual_loss'] for x in outputs]).mean()
         height_mae = torch.tensor([x['val_height_mae'] for x in outputs]).sum()/n_batch
         age_mae = torch.tensor([x['val_age_mae'] for x in outputs]).sum()/n_batch
         gender_acc = torch.tensor([x['val_gender_acc'] for x in outputs]).mean()
         
         self.log('val/loss' , val_loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('val/actual_loss' , actual_loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log('val/h',height_mae.item(), on_step=False, on_epoch=True, prog_bar=True)
         self.log('val/a',age_mae.item(), on_step=False, on_epoch=True, prog_bar=True)
         self.log('val/g',gender_acc, on_step=False, on_epoch=True, prog_bar=True)

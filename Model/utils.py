@@ -43,5 +43,5 @@ class UncertaintyLoss(Module):
         
         self.loss_var = self.loss_gender_var + self.loss_height_var + self.loss_age_var
 
-        return self.loss_var
+        return self.loss_var, self.loss
 
