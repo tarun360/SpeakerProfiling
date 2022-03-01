@@ -2,10 +2,10 @@ import os
 
 class TIMITConfig(object):
     # path to the unzuipped TIMIT data folder
-    data_path = '/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_data/'
+    data_path = 'TIMIT_Dataset/wav_data/'
 
     # path to csv file containing age, heights of timit speakers
-    speaker_csv_path = os.path.join(str(os.getcwd()), '/notebooks/SpeakerProfiling/Dataset/data_info_height_age.csv')
+    speaker_csv_path = os.path.join(str(os.getcwd()), 'Dataset/data_info_height_age.csv')
 
     batch_size = 8
     epochs = 100
@@ -43,10 +43,10 @@ class TIMITConfig(object):
     # For wav2vec2, feature_dim = 768
     # For npc, feature_dim = 512
     # For tera, feature_dim = 768
-    feature_dim = 1024
+    feature_dim = 768
 
     # No of GPUs for training and no of workers for datalaoders
-    gpu = '-1'
+    gpu = '0'
     n_workers = 0
 
     # model checkpoint to continue from
