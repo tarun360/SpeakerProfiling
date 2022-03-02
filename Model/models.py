@@ -3,7 +3,7 @@ import torch.nn as nn
 from conformer.encoder import ConformerEncoder
 from IPython import embed
 from area_attention import AreaAttention, MultiHeadAreaAttention
-from .CompactBilinearPooling import CompactBilinearPooling
+# from .CompactBilinearPooling import CompactBilinearPooling
 
 class UpstreamTransformer(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
@@ -122,7 +122,7 @@ class UpstreamTransformerMoE5(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, x, x_len):
+    def forward(self, x, x_len, gender=None):
         x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
         x = self.upstream(x)['last_hidden_state']
         xM = self.transformer_encoder_M(x)
@@ -131,11 +131,13 @@ class UpstreamTransformerMoE5(nn.Module):
         xF = self.dropout(torch.cat((torch.mean(xF, dim=1), torch.std(xF, dim=1)), dim=1))
         xM = self.dropout(self.fcM(xM))
         xF = self.dropout(self.fcF(xF))
-        gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
+        gender_hat = self.gender_classifier(torch.cat((xM, xF), dim=1))
+        if gender is None:
+            gender = gender_hat
         output = (1-gender)*xM + gender*xF
         height = self.height_regressor(output)
         age = self.age_regressor(output)
-        return height, age, gender
+        return height, age, gender_hat
 
 class UpstreamTransformerMoE5Bilinear(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):

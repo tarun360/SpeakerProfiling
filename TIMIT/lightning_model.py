@@ -91,7 +91,7 @@ class LightningModel(pl.LightningModule):
         y_a = torch.stack(y_a).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        y_hat_h, y_hat_a, y_hat_g = self(x, x_len)
+        y_hat_h, y_hat_a, y_hat_g = self(x, x_len, y_g)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h, y_hat_a, y_hat_g = y_hat_h.view(-1).float(), y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
 
