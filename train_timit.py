@@ -141,6 +141,8 @@ if __name__ == "__main__":
 #         def on_train_epoch_start(self, trainer, pl_module):
 #             if trainer.current_epoch == 21:
 #                 new_optimizer = torch.optim.Adam(pl_module.parameters(), lr=1e-6)
+#                 new_scheduler = LinearWarmupCosineAnnealingLR(new_optimizer, warmup_epochs=5*500, max_epochs=40*500, warmup_start_lr=0)
+#                 trainer.lr_schedulers = trainer.configure_schedulers([new_scheduler], monitor='val/loss', is_manual_optimization=False)
 #                 trainer.optimizers = [new_optimizer]
 #                 trainer.optimizer_frequencies = 1
                 
@@ -153,7 +155,7 @@ if __name__ == "__main__":
             EarlyStopping(
                 monitor='val/loss',
                 min_delta=0.00,
-                patience=10,
+                patience=20,
                 verbose=True,
                 mode='min'
                 ),
@@ -164,7 +166,9 @@ if __name__ == "__main__":
         logger=logger,
         resume_from_checkpoint=hparams.model_checkpoint,
         distributed_backend='ddp',
-
+#         track_grad_norm=2,
+#         gradient_clip_val=1,
+#         gradient_clip_algorithm="value"
         )
 
     # Fit model

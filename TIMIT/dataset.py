@@ -84,6 +84,7 @@ class TIMITDataset(Dataset):
             mixup_idx = random.randint(0, len(self.files)-1)
             mixup_file = self.files[mixup_idx]
             mixup_id = mixup_file.split('_')[0][1:]
+                
             mixup_gender = self.gender_dict[self.df.loc[mixup_id, 'Sex']]
             mixup_height = self.df.loc[mixup_id, 'height']
             mixup_age =  self.df.loc[mixup_id, 'age']

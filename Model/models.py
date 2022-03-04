@@ -136,7 +136,42 @@ class UpstreamTransformer2(nn.Module):
         age = self.age_regressor(x)
         gender = self.gender_classifier(x)
         return height, age, gender
-    
+  
+class UpstreamTransformerSingleEncoder(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        for param in self.upstream.parameters():
+            param.requires_grad = True
+        
+        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
+            param.requires_grad = False
+        
+        encoder_layer = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        self.transformer_encoder = torch.nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        
+        self.fc = nn.Linear(2*feature_dim, 1024)
+        self.dropout = nn.Dropout(0.5)
+
+        self.height_regressor = nn.Linear(1024, 1)
+        self.age_regressor = nn.Linear(1024, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(1024, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        x = self.upstream(x)['last_hidden_state']
+        x = self.transformer_encoder(x)
+        x = self.dropout(torch.cat((torch.mean(x, dim=1), torch.std(x, dim=1)), dim=1))
+        x = self.dropout(self.fc(x))
+        height = self.height_regressor(x)
+        age = self.age_regressor(x)
+        gender = self.gender_classifier(x)
+        return height, age, gender
+
 class UpstreamTransformerMoE5(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
         super().__init__()
@@ -418,6 +453,84 @@ class UpstreamTransformerSingleFc(nn.Module):
         age = self.age_regressor(x)
         return height, age, gender
     
+class UpstreamTransformerSingleCNN(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        for param in self.upstream.parameters():
+            param.requires_grad = False
+        for param in self.upstream.model.feature_extractor.conv_layers.parameters():
+            param.requires_grad = True
+
+        self.activation = {}
+        def get_activation(name):
+            def hook(model, input, output):
+                self.activation[name] = output
+            return hook
+        self.upstream.model.feature_extractor.register_forward_hook(get_activation('feature_extractor'))
+
+        self.height_regressor = nn.Linear(512, 1)
+        self.age_regressor = nn.Linear(512, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(512, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        _ = self.upstream(x)['last_hidden_state']
+        feature_extractor_output = torch.transpose(self.activation['feature_extractor'], 1, 2)
+        x = torch.cat((torch.mean(x, dim=1), torch.std(x, dim=1)), dim=1)
+        x = self.dropout(self.fc(x))
+        gender = self.gender_classifier(x)
+        height = self.height_regressor(x)
+        age = self.age_regressor(x)
+        return height, age, gender
+ 
+class UpstreamTransformerSingleFcSE(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+            
+        self.upstream.eval()
+        
+        for param in self.upstream.parameters():
+            param.requires_grad = True
+        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
+            param.requires_grad = False
+
+        self.SE = nn.Sequential(
+            nn.Linear(13, 64),
+            nn.ReLU(),
+            nn.Linear(64,13),
+            nn.Sigmoid()
+        )    
+            
+        self.fc = nn.Linear(feature_dim, 1024)
+        
+        self.dropout = nn.Dropout(0.5)
+
+        self.height_regressor = nn.Linear(1024, 1)
+        self.age_regressor = nn.Linear(1024, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(1024, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        x = self.upstream(x)['hidden_states']
+        x = torch.stack(x).transpose(0,1)
+        avg = x.mean(dim=(2,3))
+        se = self.SE(avg)
+        x = torch.bmm(x.mean(dim=2).transpose(1,2),se.unsqueeze(dim=2)).squeeze(dim=2)
+        x = self.dropout(self.fc(x))
+        gender = self.gender_classifier(x)
+        height = self.height_regressor(x)
+        age = self.age_regressor(x)
+        return height, age, gender
+
 class UpstreamTransformerMoE5SingleFc(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
         super().__init__()
@@ -576,7 +689,43 @@ class UpstreamTransformerMoE5BilinearFourthFifth(nn.Module):
         height = self.height_regressor(x)
         age = self.age_regressor(x)
         return height, age, gender
+  
+class UpstreamTransformerMoE5BilinearFirstSecond(nn.Module):
+    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
+        super().__init__()
+        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        
+        # Selecting the 9th encoder layer (out of 12)
+#         self.upstream.model.encoder.layers = self.upstream.model.encoder.layers[0:9]
+        self.upstream.eval()
     
+        for param in self.upstream.parameters():
+            param.requires_grad = True
+       
+        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
+            param.requires_grad = False
+        
+        self.bilinear_pooling =  CompactBilinearPooling(768, 768, 4096)
+        
+        self.dropout = nn.Dropout(0.5)
+
+        self.height_regressor = nn.Linear(4096, 1)
+        self.age_regressor = nn.Linear(4096, 1)
+        self.gender_classifier = nn.Sequential(
+            nn.Linear(4096, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, x_len):
+        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+        x = self.upstream(x)['hidden_states']
+        x = self.bilinear_pooling(x[0], x[1])
+        x = self.dropout(torch.mean(x, dim=1))
+        gender = self.gender_classifier(x)
+        height = self.height_regressor(x)
+        age = self.age_regressor(x)
+        return height, age, gender
+
 class UpstreamTransformerMoE5Bilinear(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
         super().__init__()
