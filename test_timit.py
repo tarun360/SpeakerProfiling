@@ -6,17 +6,10 @@ import os
 from IPython import embed
 
 from TIMIT.dataset import TIMITDataset
-if TIMITConfig.training_type == 'H':
-    from TIMIT.lightning_model_h import LightningModel
-elif TIMITConfig.loss == 'RMSE':
-    from TIMIT.lightning_model import LightningModel
-elif TIMITConfig.loss == 'UncertaintyLoss':
-    from TIMIT.lightning_model_uncertainty_loss import LightningModel
-
+from TIMIT.lightning_model_uncertainty_loss import LightningModel
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error, accuracy_score
 import pytorch_lightning as pl
-
 
 import torch
 import torch.utils.data as data
@@ -40,9 +33,6 @@ if __name__ == "__main__":
     parser.add_argument('--speaker_csv_path', type=str, default=TIMITConfig.speaker_csv_path)
     parser.add_argument('--batch_size', type=int, default=TIMITConfig.batch_size)
     parser.add_argument('--epochs', type=int, default=TIMITConfig.epochs)
-    parser.add_argument('--alpha', type=float, default=TIMITConfig.alpha)
-    parser.add_argument('--beta', type=float, default=TIMITConfig.beta)
-    parser.add_argument('--gamma', type=float, default=TIMITConfig.gamma)
     parser.add_argument('--num_layers', type=int, default=TIMITConfig.num_layers)
     parser.add_argument('--feature_dim', type=int, default=TIMITConfig.feature_dim)
     parser.add_argument('--lr', type=float, default=TIMITConfig.lr)
@@ -50,17 +40,12 @@ if __name__ == "__main__":
     parser.add_argument('--n_workers', type=int, default=TIMITConfig.n_workers)
     parser.add_argument('--dev', type=str, default=False)
     parser.add_argument('--model_checkpoint', type=str, default=TIMITConfig.model_checkpoint)
-    parser.add_argument('--noise_dataset_path', type=str, default=TIMITConfig.noise_dataset_path)
     parser.add_argument('--upstream_model', type=str, default=TIMITConfig.upstream_model)
     parser.add_argument('--model_type', type=str, default=TIMITConfig.model_type)
-    parser.add_argument('--training_type', type=str, default=TIMITConfig.training_type)
-    parser.add_argument('--data_type', type=str, default=TIMITConfig.data_type)
-    parser.add_argument('--speed_change', action='store_true')
-    parser.add_argument('--unfreeze_last_conv_layers', action='store_true')
     
     parser = pl.Trainer.add_argparse_args(parser)
     hparams = parser.parse_args()
-    print(f'Testing Model on NISP Dataset\n#Cores = {hparams.n_workers}\t#GPU = {hparams.gpu}')
+    print(f'Testing Model on TIMIT Dataset\n#Cores = {hparams.n_workers}\t#GPU = {hparams.gpu}')
 
     # Testing Dataset
     test_set = TIMITDataset(
@@ -87,98 +72,62 @@ if __name__ == "__main__":
 
     #Testing the Model
     if hparams.model_checkpoint:
-        if TIMITConfig.training_type == 'AHG':
-            model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
-            model.to('cuda')
-            model.eval()
-            height_pred = []
-            height_true = []
-            age_pred = []
-            age_true = []
-            gender_pred = []
-            gender_true = []
+        model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
+        model.to('cuda')
+        model.eval()
+        height_pred = []
+        height_true = []
+        age_pred = []
+        age_true = []
+        gender_pred = []
+        gender_true = []
 
-            for batch in tqdm(testloader):
-                x, y_h, y_a, y_g, x_len = batch
-                x = x.to('cuda')
-                y_h = torch.stack(y_h).reshape(-1,)
-                y_a = torch.stack(y_a).reshape(-1,)
-                y_g = torch.stack(y_g).reshape(-1,)
-                
-                y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
-                y_hat_h = y_hat_h.to('cpu')
-                y_hat_a = y_hat_a.to('cpu')
-                y_hat_g = y_hat_g.to('cpu')
-                height_pred.append((y_hat_h*h_std+h_mean).item())
-                age_pred.append((y_hat_a*a_std+a_mean).item())
-                gender_pred.append(y_hat_g>0.5)
-
-                height_true.append((y_h*h_std+h_mean).item())
-                age_true.append(( y_a*a_std+a_mean).item())
-                gender_true.append(y_g[0])
-
-            female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
-            male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
-
-            height_true = np.array(height_true)
-            height_pred = np.array(height_pred)
-            age_true = np.array(age_true)
-            age_pred = np.array(age_pred)
-
-            hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
-            hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)
-            amae = mean_absolute_error(age_true[male_idx], age_pred[male_idx])
-            armse = mean_squared_error(age_true[male_idx], age_pred[male_idx], squared=False)
-            print(hrmse, hmae, armse, amae)
-
-            hmae = mean_absolute_error(height_true[female_idx], height_pred[female_idx])
-            hrmse = mean_squared_error(height_true[female_idx], height_pred[female_idx], squared=False)
-            amae = mean_absolute_error(age_true[female_idx], age_pred[female_idx])
-            armse = mean_squared_error(age_true[female_idx], age_pred[female_idx], squared=False)
-            print(hrmse, hmae, armse, amae)
+        for batch in tqdm(testloader):
+            x, y_h, y_a, y_g, x_len = batch
+            x = x.to('cuda')
+            y_h = torch.stack(y_h).reshape(-1,)
+            y_a = torch.stack(y_a).reshape(-1,)
+            y_g = torch.stack(y_g).reshape(-1,)
             
-            hmae = mean_absolute_error(height_true, height_pred)
-            hrmse = mean_squared_error(height_true, height_pred, squared=False)
-            amae = mean_absolute_error(age_true, age_pred)
-            armse = mean_squared_error(age_true, age_pred, squared=False)
-            print(hrmse, hmae, armse, amae)
-            
-            gender_pred_ = [int(pred[0][0] == True) for pred in gender_pred]
-            print(accuracy_score(gender_true, gender_pred_))
+            y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
+            y_hat_h = y_hat_h.to('cpu')
+            y_hat_a = y_hat_a.to('cpu')
+            y_hat_g = y_hat_g.to('cpu')
+            height_pred.append((y_hat_h*h_std+h_mean).item())
+            age_pred.append((y_hat_a*a_std+a_mean).item())
+            gender_pred.append(y_hat_g>0.5)
+
+            height_true.append((y_h*h_std+h_mean).item())
+            age_true.append(( y_a*a_std+a_mean).item())
+            gender_true.append(y_g[0])
+
+        female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
+        male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
+
+        height_true = np.array(height_true)
+        height_pred = np.array(height_pred)
+        age_true = np.array(age_true)
+        age_pred = np.array(age_pred)
+
+        hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
+        hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)
+        amae = mean_absolute_error(age_true[male_idx], age_pred[male_idx])
+        armse = mean_squared_error(age_true[male_idx], age_pred[male_idx], squared=False)
+        print(hrmse, hmae, armse, amae)
+
+        hmae = mean_absolute_error(height_true[female_idx], height_pred[female_idx])
+        hrmse = mean_squared_error(height_true[female_idx], height_pred[female_idx], squared=False)
+        amae = mean_absolute_error(age_true[female_idx], age_pred[female_idx])
+        armse = mean_squared_error(age_true[female_idx], age_pred[female_idx], squared=False)
+        print(hrmse, hmae, armse, amae)
         
-        else:
-            model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
-            model.eval()
-            height_pred = []
-            height_true = []
-            gender_true = []
-
-            for batch in tqdm(testloader):
-                x, y_h, y_a, y_g, x_len = batch
-                y_h = torch.stack(y_h).reshape(-1,)
-
-                for i in range(x.shape[0]):
-                    torch.narrow(x, 1, 0, x_len[i])
-                y_hat_h = model(x)
-
-                height_pred.append((y_hat_h*h_std+h_mean).item())
-                height_true.append((y_h*h_std+h_mean).item())
-                gender_true.append(y_g)
-
-            female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
-            male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
-
-            height_true = np.array(height_true)
-            height_pred = np.array(height_pred)
-
-            hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
-            hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)
-            print(hrmse, hmae)
-
-            hmae = mean_absolute_error(height_true[female_idx], height_pred[female_idx])
-            hrmse = mean_squared_error(height_true[female_idx], height_pred[female_idx], squared=False)
-            print(hrmse, hmae)
-
-
+        hmae = mean_absolute_error(height_true, height_pred)
+        hrmse = mean_squared_error(height_true, height_pred, squared=False)
+        amae = mean_absolute_error(age_true, age_pred)
+        armse = mean_squared_error(age_true, age_pred, squared=False)
+        print(hrmse, hmae, armse, amae)
+        
+        gender_pred_ = [int(pred[0][0] == True) for pred in gender_pred]
+        print(accuracy_score(gender_true, gender_pred_))
     else:
         print('Model chekpoint not found for Testing !!!')

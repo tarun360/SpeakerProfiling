@@ -20,38 +20,14 @@ class TIMITDataset(Dataset):
         self.csv_file = hparams.speaker_csv_path
         self.df = pd.read_csv(self.csv_file)
         self.is_train = is_train
-        self.noise_dataset_path = hparams.noise_dataset_path
-        self.data_type = hparams.data_type
-        self.speed_change = hparams.speed_change
 
         self.speaker_list = self.df.loc[:, 'ID'].values.tolist()
         self.df.set_index('ID', inplace=True)
         self.gender_dict = {'M' : 0.0, 'F' : 1.0}
 
-        if self.noise_dataset_path:
-            self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.AdditiveNoise(self.noise_dataset_path, p=0.5),
-                wavencoder.transforms.Clipping(p=0.5),
-                ])
-        elif self.speed_change:
-            self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.SpeedChange(factor_range=(-0.1, 0.1), p=0.5),
-                ])
-        else:
-            self.train_transform = None
-
-        self.test_transform = None
-
     def __len__(self):
         return len(self.files)
 
-    def get_age(self, idx):
-        rec_date = self.df.loc[idx, 'RecDate'].split('/')
-        birth_date = self.df.loc[idx, 'BirthDate'].split('/')
-        m1, d1, y1 = [int(x) for x in birth_date]
-        m2, d2, y2 = [int(x) for x in rec_date]
-        return y2 - y1 - ((m2, d2) < (m1, d1))
-    
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
@@ -62,15 +38,11 @@ class TIMITDataset(Dataset):
         gender = self.gender_dict[self.df.loc[id, 'Sex']]
         height = self.df.loc[id, 'height']
         age =  self.df.loc[id, 'age']
-        # self.get_age(id)
         
         wav, _ = torchaudio.load(os.path.join(self.wav_folder, file))
         
         if(wav.shape[0] != 1):
             wav = torch.mean(wav, dim=0)
-
-        if self.is_train and self.train_transform:
-            wav = self.train_transform(wav)  
         
         h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
         h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
@@ -82,7 +54,6 @@ class TIMITDataset(Dataset):
         
         probability = 0.5
         if self.is_train and random.random() <= probability:
-            # https://towardsdatascience.com/enhancing-neural-networks-with-mixup-in-pytorch-5129d261bc4a
             mixup_idx = random.randint(0, len(self.files)-1)
             mixup_file = self.files[mixup_idx]
             mixup_id = mixup_file.split('_')[0][1:]
@@ -93,10 +64,7 @@ class TIMITDataset(Dataset):
             mixup_wav, _ = torchaudio.load(os.path.join(self.wav_folder, mixup_file))
 
             if(mixup_wav.shape[0] != 1):
-                mixup_wav = torch.mean(mixup_wav, dim=0)
-
-            if self.is_train and self.train_transform:
-                mixup_wav = self.train_transform(mixup_wav)  
+                mixup_wav = torch.mean(mixup_wav, dim=0) 
 
             mixup_height = (mixup_height - h_mean)/h_std
             mixup_age = (mixup_age - a_mean)/a_std

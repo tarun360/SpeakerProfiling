@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-# torch.use_deterministic_algorithms(True)
 
 import pytorch_lightning as pl
 from pytorch_lightning.metrics.regression import MeanAbsoluteError as MAE
@@ -12,7 +11,7 @@ from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 import pandas as pd
 import torch_optimizer as optim
 
-from Model.models import UpstreamTransformer, UpstreamTransformerMoE5, UpstreamTransformer2, UpstreamTransformerMoE6, UpstreamTransformerMoE8, UpstreamTransformerMoE7, UpstreamTransformerMoE9, UpstreamTransformerMoE10, UpstreamTransformerMoE11, UpstreamTransformerMoE12, UpstreamTransformerMoE13, UpstreamTransformerMoE14, UpstreamTransformerMoE15, UpstreamTransformerMoE16, UpstreamTransformerMoE17, UpstreamTransformerMoE20, UpstreamTransformerMoE5Bilinear
+from Model.models import Wav2vec2BiEncoder
 
 from Model.utils import RMSELoss, UncertaintyLoss
 
@@ -22,12 +21,10 @@ class LightningModel(pl.LightningModule):
         # HPARAMS
         self.save_hyperparameters()
         self.models = {
-            'UpstreamTransformer': UpstreamTransformer,
-            'UpstreamTransformerMoE5Bilinear': UpstreamTransformerMoE5Bilinear,
-            'UpstreamTransformerMoE5': UpstreamTransformerMoE5
+            'Wav2vec2BiEncoder': Wav2vec2BiEncoder,
         }
         
-        self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
+        self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'])
             
         self.mae_criterion = MAE()
         self.rmse_criterion = RMSELoss()
@@ -57,7 +54,6 @@ class LightningModel(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-#         scheduler = LinearWarmupCosineAnnealingLR(optimizer, warmup_epochs=5, max_epochs=50)
         return [optimizer]
 
     def training_step(self, batch, batch_idx):
@@ -75,8 +71,6 @@ class LightningModel(pl.LightningModule):
         height_mae = self.mae_criterion(y_hat_h*self.h_std+self.h_mean, y_h*self.h_std+self.h_mean)
         age_mae =self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
-
-        # self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=False)
 
         return {'loss':loss, 
                 'train_height_mae':height_mae.item(),
