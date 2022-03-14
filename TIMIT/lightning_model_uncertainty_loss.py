@@ -13,7 +13,7 @@ from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 import pandas as pd
 import torch_optimizer as optim
 
-from Model.models import UpstreamTransformer, UpstreamTransformerMoE5, UpstreamTransformer2, UpstreamTransformerMoE6, UpstreamTransformerMoE8, UpstreamTransformerMoE7, UpstreamTransformerMoE9, UpstreamTransformerMoE10, UpstreamTransformerMoE11, UpstreamTransformerMoE12, UpstreamTransformerMoE13, UpstreamTransformerMoE14, UpstreamTransformerMoE15, UpstreamTransformerMoE16, UpstreamTransformerMoE17, UpstreamTransformerMoE20, UpstreamTransformerMoE5Bilinear,UpstreamTransformerMoE5SingleFc, UpstreamTransformerMoE5SingleFcAttn, UpstreamVqapc, UpstreamTransformerSingleFc, UpstreamTransformerMoE5DiffLayer, UpstreamTransformerMoE5DiffLayer2, UpstreamTransformerMoE5BilinearFirstLast, UpstreamTransformerMoE5BilinearFourthFifth, UpstreamTransformerMoE5Avg, UpstreamTransformerMoE5Concat, UpstreamTransformerSingleEncoder, UpstreamTransformerMoE5BilinearFirstSecond, UpstreamTransformerSingleFcSE
+from Model.models import UpstreamTransformerMoE5
 
 from Model.utils import RMSELoss, UncertaintyLoss
 
@@ -23,22 +23,7 @@ class LightningModel(pl.LightningModule):
         # HPARAMS
         self.save_hyperparameters()
         self.models = {
-            'UpstreamTransformer': UpstreamTransformer,
-            'UpstreamTransformerMoE5Bilinear': UpstreamTransformerMoE5Bilinear,
             'UpstreamTransformerMoE5': UpstreamTransformerMoE5,
-            'UpstreamTransformerMoE5SingleFc': UpstreamTransformerMoE5SingleFc,
-            'UpstreamTransformerMoE5SingleFcAttn': UpstreamTransformerMoE5SingleFcAttn,
-            'UpstreamVqapc': UpstreamVqapc,
-            'UpstreamTransformerSingleFc': UpstreamTransformerSingleFc,
-            'UpstreamTransformerMoE5DiffLayer': UpstreamTransformerMoE5DiffLayer,
-            'UpstreamTransformerMoE5DiffLayer2': UpstreamTransformerMoE5DiffLayer2,
-            'UpstreamTransformerMoE5BilinearFirstLast': UpstreamTransformerMoE5BilinearFirstLast,
-            'UpstreamTransformerMoE5BilinearFourthFifth': UpstreamTransformerMoE5BilinearFourthFifth, 
-            'UpstreamTransformerMoE5Avg': UpstreamTransformerMoE5Avg,
-            'UpstreamTransformerMoE5Concat': UpstreamTransformerMoE5Concat,
-            'UpstreamTransformerSingleEncoder': UpstreamTransformerSingleEncoder,
-            'UpstreamTransformerMoE5BilinearFirstSecond': UpstreamTransformerMoE5BilinearFirstSecond,
-            'UpstreamTransformerSingleFcSE': UpstreamTransformerSingleFcSE
         }
         
         self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
@@ -68,54 +53,6 @@ class LightningModel(pl.LightningModule):
 
     def forward(self, x, x_len):
         return self.model(x, x_len)
-
-#     def configure_optimizers(self):
-#         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=1e-3)
-#         scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=1500)
-#         return {
-#         "optimizer": optimizer,
-#         "lr_scheduler": {
-#                 "scheduler": scheduler,
-#                 "interval": "step",
-#             },
-#         }
-#         return [optimizer], [scheduler]
-    
-#     def configure_optimizers(self):
-#         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-#         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20], gamma=0.01)
-#         return [optimizer], [scheduler]
-    
-#     def configure_optimizers(self):
-#         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-#         optimizer = torch.optim.Adam(
-#             [
-#                 {"params": self.model.upstream.parameters(), "lr": 5e-7},
-#                 {"params": self.model.transformer_encoder_M.parameters(), "lr": 1e-5},
-#                 {"params": self.model.transformer_encoder_F.parameters(), "lr": 1e-5},
-#                 {"params": self.model.fcM.parameters(), "lr": 1e-5},
-#                 {"params": self.model.fcF.parameters(), "lr": 1e-5},
-#                 {"params": self.model.height_regressor.parameters(), "lr": 1e-5},
-#                 {"params": self.model.age_regressor.parameters(), "lr": 1e-5},
-#                 {"params": self.model.gender_classifier.parameters(), "lr": 1e-5},
-#                 {"params": self.model.dropout.parameters(), "lr": 1e-5},
-#                 {"params": self.uncertainty_loss.parameters(), "lr": 1e-5},
-#             ],
-#             lr=1e-5,
-#         )
-#         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 20], gamma=0.5)
-#         return [optimizer], [scheduler]
-
-#     def configure_optimizers(self):
-#         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
-#         scheduler = LinearWarmupCosineAnnealingLR(optimizer, warmup_epochs=5*500, max_epochs=30*500, warmup_start_lr=0)
-#         return {
-#         "optimizer": optimizer,
-#         "lr_scheduler": {
-#                 "scheduler": scheduler,
-#                 "interval": "step",
-#             },
-#         }
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
@@ -134,7 +71,7 @@ class LightningModel(pl.LightningModule):
         loss_var, loss = self.uncertainty_loss(torch.cat((y_hat_h, y_hat_a, y_hat_g)), torch.cat((y_h, y_a, y_g)))
 
         height_mae = self.mae_criterion(y_hat_h*self.h_std+self.h_mean, y_h*self.h_std+self.h_mean)
-        age_mae =self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
+        age_mae = self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
         # self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=False)
