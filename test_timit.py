@@ -3,7 +3,6 @@ from config import TIMITConfig
 from argparse import ArgumentParser
 from multiprocessing import Pool
 import os
-from IPython import embed
 
 from TIMIT.dataset import TIMITDataset
 from TIMIT.lightning_model_uncertainty_loss import LightningModel
@@ -45,8 +44,15 @@ if __name__ == "__main__":
     
     parser = pl.Trainer.add_argparse_args(parser)
     hparams = parser.parse_args()
-    print(f'Testing Model on TIMIT Dataset\n#Cores = {hparams.n_workers}\t#GPU = {hparams.gpu}')
 
+    # Check device
+    if not torch.cuda.is_available():
+        device = 'cpu'
+        hparams.gpu = 0
+    else:        
+        device = 'cuda'
+        print(f'Training Model on TIMIT Dataset\n#Cores = {hparams.n_workers}\t#GPU = {hparams.gpu}')
+    
     # Testing Dataset
     test_set = TIMITDataset(
         wav_folder = os.path.join(hparams.data_path, 'TEST'),
@@ -73,7 +79,7 @@ if __name__ == "__main__":
     #Testing the Model
     if hparams.model_checkpoint:
         model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
-        model.to('cuda')
+        model.to(device)
         model.eval()
         height_pred = []
         height_true = []
@@ -84,7 +90,7 @@ if __name__ == "__main__":
 
         for batch in tqdm(testloader):
             x, y_h, y_a, y_g, x_len = batch
-            x = x.to('cuda')
+            x = x.to(device)
             y_h = torch.stack(y_h).reshape(-1,)
             y_a = torch.stack(y_a).reshape(-1,)
             y_g = torch.stack(y_g).reshape(-1,)

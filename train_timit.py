@@ -8,7 +8,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning import Trainer
-from IPython import embed
 
 import torch
 import torch.utils.data as data
@@ -60,7 +59,12 @@ if __name__ == "__main__":
 
     parser = pl.Trainer.add_argparse_args(parser)
     hparams = parser.parse_args()
-    print(f'Training Model on TIMIT Dataset\n#Cores = {hparams.n_workers}\t#GPU = {hparams.gpu}')
+
+    # Check device
+    if not torch.cuda.is_available():
+        hparams.gpu = 0
+    else:        
+        print(f'Training Model on TIMIT Dataset\n#Cores = {hparams.n_workers}\t#GPU = {hparams.gpu}')
 
     # Training, Validation and Testing Dataset
     ## Training Dataset
