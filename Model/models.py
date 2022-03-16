@@ -3,7 +3,8 @@ import torch.nn as nn
 from conformer.encoder import ConformerEncoder
 from IPython import embed
 from area_attention import AreaAttention, MultiHeadAreaAttention
-from .CompactBilinearPooling import CompactBilinearPooling
+from speechbrain.pretrained import EncoderClassifier
+
 
 class UpstreamTransformer(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
@@ -86,16 +87,24 @@ class UpstreamTransformer2(nn.Module):
 class UpstreamTransformerMoE5(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
         super().__init__()
-        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
-        
+        # self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
+        self.upstream = EncoderClassifier.from_hparams(source="speechbrain/spkrec-xvect-voxceleb", savedir="pretrained_models/spkrec-xvect-voxceleb")
+
+        self.activation = {}
+        def get_activation(name):
+            def hook(model, input, output):
+                self.activation[name] = output
+            return hook
+        self.upstream.mods.embedding_model.blocks[14].register_forward_hook(get_activation('feature_extractor'))
+
         # Selecting the 9th encoder layer (out of 12)
 #         self.upstream.model.encoder.layers = self.upstream.model.encoder.layers[0:9]
         
-        for param in self.upstream.parameters():
-            param.requires_grad = True
+        # for param in self.upstream.parameters():
+            # param.requires_grad = True
        
-        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
-            param.requires_grad = False
+        # for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
+            # param.requires_grad = False
                 
 #         for param in self.upstream.model.encoder.layers.parameters():
 #             param.requires_grad = True
@@ -104,10 +113,10 @@ class UpstreamTransformerMoE5(nn.Module):
 #             for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
 #                 param.requires_grad = True
         
-        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=6, batch_first=True)
         self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
         
-        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
+        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=6, batch_first=True)
         self.transformer_encoder_F = torch.nn.TransformerEncoder(encoder_layer_F, num_layers=num_layers)
         
         self.fcM = nn.Linear(2*feature_dim, 1024)
@@ -123,8 +132,8 @@ class UpstreamTransformerMoE5(nn.Module):
         )
 
     def forward(self, x, x_len):
-        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
-        x = self.upstream(x)['last_hidden_state']
+        _ = self.upstream(x)
+        x = self.activation['feature_extractor']
         xM = self.transformer_encoder_M(x)
         xF = self.transformer_encoder_F(x)
         xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))
