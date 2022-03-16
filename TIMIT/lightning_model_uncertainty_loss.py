@@ -6,7 +6,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.metrics.regression import MeanAbsoluteError as MAE
 from pytorch_lightning.metrics.regression import MeanSquaredError  as MSE
 from pytorch_lightning.metrics.classification import Accuracy
-from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 
 import pandas as pd
 import torch_optimizer as optim
