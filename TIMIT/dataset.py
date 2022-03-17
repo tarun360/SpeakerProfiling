@@ -6,7 +6,7 @@ import numpy as np
 
 import torchaudio
 import wavencoder
-from IPython import embed
+import random
 
 class TIMITDataset(Dataset):
     def __init__(self,
@@ -19,38 +19,17 @@ class TIMITDataset(Dataset):
         self.csv_file = hparams.speaker_csv_path
         self.df = pd.read_csv(self.csv_file)
         self.is_train = is_train
-        self.noise_dataset_path = hparams.noise_dataset_path
-        self.data_type = hparams.data_type
-        self.speed_change = hparams.speed_change
 
         self.speaker_list = self.df.loc[:, 'ID'].values.tolist()
         self.df.set_index('ID', inplace=True)
-        self.gender_dict = {'M' : 0, 'F' : 1}
-
-        if self.noise_dataset_path:
-            self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.AdditiveNoise(self.noise_dataset_path, p=0.5),
-                wavencoder.transforms.Clipping(p=0.5),
-                ])
-        elif self.speed_change:
-            self.train_transform = wavencoder.transforms.Compose([
-                wavencoder.transforms.SpeedChange(factor_range=(-0.1, 0.1), p=0.5),
-                ])
-        else:
-            self.train_transform = None
-
-        self.test_transform = None
+        self.gender_dict = {'M' : 0.0, 'F' : 1.0}
+        
+        self.resampleDown = torchaudio.transforms.Resample(orig_freq=16000, new_freq=8000)
+        self.resampleUp = torchaudio.transforms.Resample(orig_freq=8000, new_freq=16000)
 
     def __len__(self):
         return len(self.files)
 
-    def get_age(self, idx):
-        rec_date = self.df.loc[idx, 'RecDate'].split('/')
-        birth_date = self.df.loc[idx, 'BirthDate'].split('/')
-        m1, d1, y1 = [int(x) for x in birth_date]
-        m2, d2, y2 = [int(x) for x in rec_date]
-        return y2 - y1 - ((m2, d2) < (m1, d1))
-    
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
@@ -58,19 +37,16 @@ class TIMITDataset(Dataset):
         file = self.files[idx]
         id = file.split('_')[0][1:]
         g_id = file.split('_')[0]
-
         gender = self.gender_dict[self.df.loc[id, 'Sex']]
         height = self.df.loc[id, 'height']
         age =  self.df.loc[id, 'age']
-        # self.get_age(id)
-
+        
         wav, _ = torchaudio.load(os.path.join(self.wav_folder, file))
         
         if(wav.shape[0] != 1):
             wav = torch.mean(wav, dim=0)
-
-        if self.is_train and self.train_transform:
-            wav = self.train_transform(wav)  
+            
+#         wav = self.resampleUp(self.resampleDown(wav))
         
         h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
         h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
@@ -79,5 +55,40 @@ class TIMITDataset(Dataset):
         
         height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
+        
+        probability = 0.5
+        if self.is_train and random.random() <= probability:
+            mixup_idx = random.randint(0, len(self.files)-1)
+            mixup_file = self.files[mixup_idx]
+            mixup_id = mixup_file.split('_')[0][1:]
+            mixup_gender = self.gender_dict[self.df.loc[mixup_id, 'Sex']]
+            mixup_height = self.df.loc[mixup_id, 'height']
+            mixup_age =  self.df.loc[mixup_id, 'age']
 
+            mixup_wav, _ = torchaudio.load(os.path.join(self.wav_folder, mixup_file))
+
+            if(mixup_wav.shape[0] != 1):
+                mixup_wav = torch.mean(mixup_wav, dim=0) 
+                
+#             mixup_wav = self.resampleUp(self.resampleDown(mixup_wav))
+
+            mixup_height = (mixup_height - h_mean)/h_std
+            mixup_age = (mixup_age - a_mean)/a_std
+            
+            if(mixup_wav.shape[1] < wav.shape[1]):
+                cnt = (wav.shape[1]+mixup_wav.shape[1]-1)//mixup_wav.shape[1]
+                mixup_wav = mixup_wav.repeat(1,cnt)[:,:wav.shape[1]]
+            
+            if(wav.shape[1] < mixup_wav.shape[1]):
+                cnt = (mixup_wav.shape[1]+wav.shape[1]-1)//wav.shape[1]
+                wav = wav.repeat(1,cnt)[:,:mixup_wav.shape[1]]
+            
+            alpha = 1
+            lam = np.random.beta(alpha, alpha)
+            
+            wav = lam*wav + (1-lam)*mixup_wav
+            height = lam*height + (1-lam)*mixup_height
+            age = lam*age + (1-lam)*mixup_age
+            gender = lam*gender + (1-lam)*mixup_gender
+            
         return wav, torch.FloatTensor([height]), torch.FloatTensor([age]), torch.FloatTensor([gender])

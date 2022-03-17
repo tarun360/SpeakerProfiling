@@ -1,0 +1,21 @@
+{
+    "model_name": "Wav2vec2BiEncoder",
+    "dataDir": {
+        "dir": "/notebooks/SpeakerProfiling",
+        "data_path": "$dir/TIMIT_Dataset/wav_data/",
+        "speaker_csv_path": "$dir/Dataset/data_info_height_age.csv"
+    },
+    "model_parameters": {
+        "batch_size": "8",
+        "epochs": "50",
+        "lr": "1e-6",
+        "model_type": "Wav2vec2BiEncoder",
+        "upstream_model": "wav2vec2",
+        "_comment": "upstream model to be loaded from s3prl. Some of the upstream models are: wav2vec2, hubert, TERA, mockingjay",
+        "feature_dim": "768"
+    },
+    "gpu": "-1",
+    "n_workers": "0"
+}
+
+

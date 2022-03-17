@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn import Module, Parameter
 from torch.nn.functional import cross_entropy, mse_loss
 
-
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 class RMSELoss(nn.Module):
     def __init__(self):
         super().__init__()
@@ -19,9 +19,9 @@ class UncertaintyLoss(Module):
         self.loss_height = None
         self.loss_age = None
         self.loss_gender = None
-        self.log_var_height = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32).cuda())
-        self.log_var_age = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32).cuda())
-        self.log_var_gender = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32).cuda())
+        self.log_var_height = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32, device=device))
+        self.log_var_age = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32, device=device))
+        self.log_var_gender = Parameter(torch.tensor(0, requires_grad=True, dtype=torch.float32, device=device))
 
     def forward(self, input, target):
         pred_arr = torch.split(input, input.shape[0]//3)
