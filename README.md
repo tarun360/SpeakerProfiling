@@ -61,6 +61,10 @@ Example:
 python test_timit.py --data_path=/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_data/ --model_checkpoint=checkpoints/epoch=1-step=245-v3.ckpt
 ```
 
+### Pretrained Model
+We attached a pretrained model of our experiments. You can download the from [Dropbox](https://www.dropbox.com/s/e9juyocxgigvekl/epoch%3D24-step%3D12249.ckpt?dl=0).
+
+Download it and put it into the model_checkpoint folder.
 <!---
 
 ### Results
