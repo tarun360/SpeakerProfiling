@@ -33,6 +33,8 @@ seed_torch()
 from TIMIT.dataset import TIMITDataset
 if TIMITConfig.training_type == 'H':
     from TIMIT.lightning_model_h import LightningModel
+if TIMITConfig.training_type == 'A':
+    from TIMIT.lightning_model_h import LightningModel
 elif TIMITConfig.loss == 'RMSE':
     from TIMIT.lightning_model import LightningModel
 elif TIMITConfig.loss == 'UncertaintyLoss':
@@ -40,11 +42,11 @@ elif TIMITConfig.loss == 'UncertaintyLoss':
 
 import torch.nn.utils.rnn as rnn_utils
 def collate_fn(batch):
-    (seq, lpcc, height, age, gender) = zip(*batch)
+    (seq, height, age, gender) = zip(*batch)
     seql = [x.reshape(-1,) for x in seq]
     seq_length = [x.shape[0] for x in seql]
     data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
-    return data, lpcc, height, age, gender, seq_length
+    return data, height, age, gender, seq_length
 
 if __name__ == "__main__":
 

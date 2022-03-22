@@ -7,6 +7,8 @@ import os
 from TIMIT.dataset import TIMITDataset
 if TIMITConfig.training_type == 'H':
     from TIMIT.lightning_model_h import LightningModel
+if TIMITConfig.training_type == 'A':
+    from TIMIT.lightning_model_h import LightningModel
 elif TIMITConfig.loss == 'RMSE':
     from TIMIT.lightning_model import LightningModel
 elif TIMITConfig.loss == 'UncertaintyLoss':
@@ -25,11 +27,11 @@ import numpy as np
 
 import torch.nn.utils.rnn as rnn_utils
 def collate_fn(batch):
-    (seq, lpcc, height, age, gender) = zip(*batch)
+    (seq, height, age, gender) = zip(*batch)
     seql = [x.reshape(-1,) for x in seq]
     seq_length = [x.shape[0] for x in seql]
     data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
-    return data, lpcc, height, age, gender, seq_length
+    return data, height, age, gender, seq_length
 
 if __name__ == "__main__":
 
@@ -154,15 +156,13 @@ if __name__ == "__main__":
             gender_true = []
 
             for batch in tqdm(testloader):
-                x, lpcc, y_h, y_a, y_g, x_len = batch
+                x, y_h, y_a, y_g, x_len = batch
                 x = x.to('cuda')
-                lpcc = torch.stack(lpcc)
-                lpcc = lpcc.to('cuda')
                 y_h = torch.stack(y_h).reshape(-1,)
                 y_a = torch.stack(y_a).reshape(-1,)
                 y_g = torch.stack(y_g).reshape(-1,)
                 
-                y_hat_h = model(x, x_len, lpcc)
+                y_hat_h = model(x, x_len)
                 y_hat_h = y_hat_h.to('cpu')
                 
                 height_pred.append((y_hat_h*h_std+h_mean).item())
@@ -175,9 +175,9 @@ if __name__ == "__main__":
             height_true = np.array(height_true)
             height_pred = np.array(height_pred)
 
-            hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
-            hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)
-            print(hrmse, hmae)
+#             hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
+#             hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)
+#             print(hrmse, hmae)
 
             hmae = mean_absolute_error(height_true[female_idx], height_pred[female_idx])
             hrmse = mean_squared_error(height_true[female_idx], height_pred[female_idx], squared=False)
