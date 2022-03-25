@@ -3,7 +3,6 @@ import torch.nn as nn
 from conformer.encoder import ConformerEncoder
 from IPython import embed
 from area_attention import AreaAttention, MultiHeadAreaAttention
-from .CompactBilinearPooling import CompactBilinearPooling
 
 class UpstreamTransformer(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
@@ -129,72 +128,6 @@ class UpstreamTransformerMoE5(nn.Module):
         xF = self.transformer_encoder_F(x)
         xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))
         xF = self.dropout(torch.cat((torch.mean(xF, dim=1), torch.std(xF, dim=1)), dim=1))
-        xM = self.dropout(self.fcM(xM))
-        xF = self.dropout(self.fcF(xF))
-        gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
-        output = (1-gender)*xM + gender*xF
-        height = self.height_regressor(output)
-        age = self.age_regressor(output)
-        return height, age, gender
-
-class UpstreamTransformerMoE5Bilinear(nn.Module):
-    def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
-        super().__init__()
-        self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
-        
-        # Selecting the 9th encoder layer (out of 12)
-#         self.upstream.model.encoder.layers = self.upstream.model.encoder.layers[0:9]
-        
-        for param in self.upstream.parameters():
-            param.requires_grad = True
-       
-        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
-            param.requires_grad = False
-                
-#         for param in self.upstream.model.encoder.layers.parameters():
-#             param.requires_grad = True
-
-#         if unfreeze_last_conv_layers:
-#             for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
-#                 param.requires_grad = True
-        
-        encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
-        self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
-        
-        encoder_layer_F = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
-        self.transformer_encoder_F = torch.nn.TransformerEncoder(encoder_layer_F, num_layers=num_layers)
-        
-        self.activation = {}
-        def get_activation(name):
-            def hook(model, input, output):
-                self.activation[name] = output
-            return hook
-        self.upstream.model.feature_extractor.register_forward_hook(get_activation('feature_extractor'))
-
-        self.bilinear_pooling =  CompactBilinearPooling(768, 512, 4096)
-        
-        self.fcM = nn.Linear(4096, 1024)
-        self.fcF = nn.Linear(4096, 1024)
-        
-        self.dropout = nn.Dropout(0.5)
-
-        self.height_regressor = nn.Linear(1024, 1)
-        self.age_regressor = nn.Linear(1024, 1)
-        self.gender_classifier = nn.Sequential(
-            nn.Linear(2*1024, 1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x, x_len):
-        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
-        x = self.upstream(x)['last_hidden_state']
-        xM = self.transformer_encoder_M(x)
-        xF = self.transformer_encoder_F(x)
-        feature_extractor_output = torch.transpose(self.activation['feature_extractor'], 1, 2)
-        xM = self.dropout(self.bilinear_pooling(xM, feature_extractor_output))
-        xF = self.dropout(self.bilinear_pooling(xF, feature_extractor_output))
-        xM = torch.mean(xM, dim=1)
-        xF = torch.mean(xF, dim=1)
         xM = self.dropout(self.fcM(xM))
         xF = self.dropout(self.fcF(xF))
         gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
