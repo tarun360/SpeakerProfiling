@@ -43,5 +43,7 @@ class TIMITConfig(object):
     
     # LR of optimizer
     lr = float(config['model_parameters']['lr'])
+    
+    narrow_band = config['model_parameters']['narrow_band']
 
     run_name = 'multi-task' + '_' + model_type

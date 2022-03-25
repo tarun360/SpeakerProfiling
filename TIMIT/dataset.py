@@ -24,9 +24,12 @@ class TIMITDataset(Dataset):
         self.df.set_index('ID', inplace=True)
         self.gender_dict = {'M' : 0.0, 'F' : 1.0}
         
-        self.resampleDown = torchaudio.transforms.Resample(orig_freq=16000, new_freq=8000)
-        self.resampleUp = torchaudio.transforms.Resample(orig_freq=8000, new_freq=16000)
-
+        self.narrow_band = hparams.narrow_band
+        
+        if self.narrow_band:
+            self.resampleDown = torchaudio.transforms.Resample(orig_freq=16000, new_freq=8000)
+            self.resampleUp = torchaudio.transforms.Resample(orig_freq=8000, new_freq=16000) 
+        
     def __len__(self):
         return len(self.files)
 
@@ -46,7 +49,8 @@ class TIMITDataset(Dataset):
         if(wav.shape[0] != 1):
             wav = torch.mean(wav, dim=0)
             
-#         wav = self.resampleUp(self.resampleDown(wav))
+        if self.narrow_band:
+            wav = self.resampleUp(self.resampleDown(wav))
         
         h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
         h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
@@ -69,8 +73,9 @@ class TIMITDataset(Dataset):
 
             if(mixup_wav.shape[0] != 1):
                 mixup_wav = torch.mean(mixup_wav, dim=0) 
-                
-#             mixup_wav = self.resampleUp(self.resampleDown(mixup_wav))
+            
+            if self.narrow_band:
+                mixup_wav = self.resampleUp(self.resampleDown(mixup_wav))
 
             mixup_height = (mixup_height - h_mean)/h_std
             mixup_age = (mixup_age - a_mean)/a_std
