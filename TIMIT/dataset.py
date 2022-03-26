@@ -30,12 +30,12 @@ class TIMITDataset(Dataset):
 
         new_files = []
         if self.gender_type == None:
-            self.list_gender = [0, 1] # contain both male and female
+            self.list_gender = ['M', 'F'] # contain both male and female
         else:
             self.list_gender = [self.gender_type]
         for file in self.files:
             id = file.split('_')[0][1:]
-            gender = self.gender_dict[self.df.loc[id, 'Sex']]
+            gender = self.df.loc[id, 'Sex']
             if gender in self.list_gender:
                 new_files.append(file)
         self.files = new_files
@@ -64,7 +64,6 @@ class TIMITDataset(Dataset):
         height = self.df.loc[id, 'height']
         age =  self.df.loc[id, 'age']
         # self.get_age(id)
-        assert (gender in self.list_gender)
 
         wav, _ = torchaudio.load(os.path.join(self.wav_folder, file), normalize=True)
         
@@ -78,7 +77,7 @@ class TIMITDataset(Dataset):
         h_std = self.df[(self.df['Use'] == 'TRN') & (self.df['Sex'].isin(self.list_gender))]['height'].std()
         a_mean = self.df[(self.df['Use'] == 'TRN') & (self.df['Sex'].isin(self.list_gender))]['age'].mean()
         a_std = self.df[(self.df['Use'] == 'TRN') & (self.df['Sex'].isin(self.list_gender))]['age'].std()
-        
+                
         height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
     
