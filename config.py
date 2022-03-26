@@ -29,6 +29,9 @@ class TIMITConfig(object):
     # wav2vecTransformer
     model_type = 'UpstreamTransformerH'
 
+    # choose which the gender you want to train the model on. Ex: None for both genders, 0 for male, 1 for female 
+    gender_type = None
+
     # RMSE, UncertaintyLoss
     loss = "RMSE"
     

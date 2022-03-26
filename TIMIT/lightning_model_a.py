@@ -44,10 +44,14 @@ class LightningModel(pl.LightningModule):
 
         self.csv_path = HPARAMS['speaker_csv_path']
         self.df = pd.read_csv(self.csv_path)
-        self.h_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
-        self.h_std = self.df[self.df['Use'] == 'TRN']['age'].std()
-        self.a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
-        self.a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
+        if HPARAMS['gender_type'] is None:
+            self.list_gender = [0, 1]
+        else:
+            self.list_gender = [HPARAMS['gender_type']]
+        self.h_mean = self.df[(self.df['Use'] == 'TRN') & (self.df['Sex'].isin(self.list_gender))]['height'].mean()
+        self.h_std = self.df[(self.df['Use'] == 'TRN') & (self.df['Sex'].isin(self.list_gender))]['height'].std()
+        self.a_mean = self.df[(self.df['Use'] == 'TRN') & (self.df['Sex'].isin(self.list_gender))]['age'].mean()
+        self.a_std = self.df[(self.df['Use'] == 'TRN') & (self.df['Sex'].isin(self.list_gender))]['age'].std()
 
         print(f"Model Details: #Params = {self.count_total_parameters()}\t#Trainable Params = {self.count_trainable_parameters()}")
 
@@ -128,25 +132,27 @@ class LightningModel(pl.LightningModule):
         
         y_hat_a = self(x, x_len)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
-        y_hat_a = y_hat_h.view(-1).float()
+        y_hat_a = y_hat_a.view(-1).float()
 
         idx = y_g.view(-1).long()
         female_idx = torch.nonzero(idx).view(-1)
         male_idx = torch.nonzero(1-idx).view(-1)
 
-        male_age_mae = self.mae_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean)
-
-        female_age_mae = self.mae_criterion(y_hat_a[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean)
-
-        male_age_rmse = self.rmse_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean)
-
-        femal_age_rmse = self.rmse_criterion(y_hat_a[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean)
-
+        if 0 in self.list_gender:
+            male_age_mae = self.mae_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean).item()
+            male_age_rmse = self.rmse_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean).item()
+            female_age_mae = 0
+            femal_age_rmse = 0
+        if 1 in self.list_gender:
+            male_age_mae = 0
+            male_age_rmse = 0
+            female_age_mae = self.mae_criterion(y_hat_a[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean).item()
+            femal_age_rmse = self.rmse_criterion(y_hat_a[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean).item()
         return {
-                'male_age_mae':male_age_mae.item(),
-                'female_age_mae':female_age_mae.item(),
-                'male_age_rmse':male_age_rmse.item(),
-                'femal_age_rmse':femal_age_rmse.item(),
+                'male_age_mae':male_age_mae,
+                'female_age_mae':female_age_mae,
+                'male_age_rmse':male_age_rmse,
+                'femal_age_rmse':femal_age_rmse,
         }
     
     def test_epoch_end(self, outputs):

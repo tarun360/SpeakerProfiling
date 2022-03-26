@@ -53,6 +53,7 @@ if __name__ == "__main__":
     parser.add_argument('--noise_dataset_path', type=str, default=TIMITConfig.noise_dataset_path)
     parser.add_argument('--upstream_model', type=str, default=TIMITConfig.upstream_model)
     parser.add_argument('--model_type', type=str, default=TIMITConfig.model_type)
+    parser.add_argument('--gender_type', type=str, default=TIMITConfig.gender_type)
     parser.add_argument('--training_type', type=str, default=TIMITConfig.training_type)
     parser.add_argument('--data_type', type=str, default=TIMITConfig.data_type)
     parser.add_argument('--speed_change', action='store_true')
@@ -80,10 +81,14 @@ if __name__ == "__main__":
 
     csv_path = hparams.speaker_csv_path
     df = pd.read_csv(csv_path)
-    h_mean = df[df['Use'] == 'TRN']['height'].mean()
-    h_std = df[df['Use'] == 'TRN']['height'].std()
-    a_mean = df[df['Use'] == 'TRN']['age'].mean()
-    a_std = df[df['Use'] == 'TRN']['age'].std()
+    if hparams.gender_type is None:
+        list_gender = [0, 1]
+    else:
+        list_gender = [hparams.gender_type]
+    h_mean = df[(df['Use'] == 'TRN') & (df['Sex'].isin(list_gender))]['height'].mean()
+    h_std = df[(df['Use'] == 'TRN') & (df['Sex'].isin(list_gender))]['height'].std()
+    a_mean = df[(df['Use'] == 'TRN') & (df['Sex'].isin(list_gender))]['age'].mean()
+    a_std = df[(df['Use'] == 'TRN') & (df['Sex'].isin(list_gender))]['age'].std()
 
     #Testing the Model
     if hparams.model_checkpoint:
@@ -146,13 +151,16 @@ if __name__ == "__main__":
             
             gender_pred_ = [int(pred[0][0] == True) for pred in gender_pred]
             print(accuracy_score(gender_true, gender_pred_))
-        
         else:
             model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
             model.to('cuda')
             model.eval()
-            height_pred = []
-            height_true = []
+            if TIMITConfig.training_type == 'A':
+                age_pred = []
+                age_true = []
+            else:
+                height_pred = []
+                height_true = []
             gender_true = []
 
             for batch in tqdm(testloader):
@@ -162,27 +170,39 @@ if __name__ == "__main__":
                 y_a = torch.stack(y_a).reshape(-1,)
                 y_g = torch.stack(y_g).reshape(-1,)
                 
-                y_hat_h = model(x, x_len)
-                y_hat_h = y_hat_h.to('cpu')
-                
-                height_pred.append((y_hat_h*h_std+h_mean).item())
-                height_true.append((y_h*h_std+h_mean).item())
+                y_hat = model(x, x_len)
+                y_hat = y_hat.to('cpu')
+                if TIMITConfig.training_type == 'A':
+                    age_pred.append((y_hat*a_std+a_mean).item())
+                    age_true.append((y_h*a_std+a_mean).item())
+                else:
+                    height_pred.append((y_hat*h_std+h_mean).item())
+                    height_true.append((y_h*h_std+h_mean).item())
                 gender_true.append(y_g[0])
 
             female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
             male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
-
-            height_true = np.array(height_true)
-            height_pred = np.array(height_pred)
-
-#             hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
-#             hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)
-#             print(hrmse, hmae)
-
-            hmae = mean_absolute_error(height_true[female_idx], height_pred[female_idx])
-            hrmse = mean_squared_error(height_true[female_idx], height_pred[female_idx], squared=False)
-            print(hrmse, hmae)
-
-
+            if TIMITConfig.training_type == 'A':
+                age_true = np.array(age_true)
+                age_pred = np.array(age_pred)
+                if 0 in list_gender:
+                    amae = mean_absolute_error(age_true[male_idx], age_pred[male_idx])
+                    armse = mean_squared_error(age_true[male_idx], age_pred[male_idx], squared=False)
+                    print(armse, amae)
+                else:
+                    amae = mean_absolute_error(age_true[female_idx], age_pred[female_idx])
+                    armse = mean_squared_error(age_true[female_idx], age_pred[female_idx], squared=False)
+                    print(armse, amae)
+            else:
+                height_true = np.array(height_true)
+                height_pred = np.array(height_pred)
+                if 0 in list_gender:
+                    hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
+                    hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)
+                    print(hrmse, hmae)
+                else:
+                    hmae = mean_absolute_error(height_true[female_idx], height_pred[female_idx])
+                    hrmse = mean_squared_error(height_true[female_idx], height_pred[female_idx], squared=False)
+                    print(hrmse, hmae)
     else:
         print('Model chekpoint not found for Testing !!!')

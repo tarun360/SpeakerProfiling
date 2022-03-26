@@ -69,6 +69,7 @@ if __name__ == "__main__":
     parser.add_argument('--noise_dataset_path', type=str, default=None)
     parser.add_argument('--model_type', type=str, default=TIMITConfig.model_type)
     parser.add_argument('--upstream_model', type=str, default=TIMITConfig.upstream_model)
+    parser.add_argument('--gender_type', type=str, default=TIMITConfig.gender_type)
     parser.add_argument('--training_type', type=str, default=TIMITConfig.training_type)
     parser.add_argument('--data_type', type=str, default=TIMITConfig.data_type)
     parser.add_argument('--speed_change', action='store_true')
@@ -126,8 +127,6 @@ if __name__ == "__main__":
     print('Dataset Split (Train, Validation, Test)=', len(train_set), len(valid_set), len(test_set))
 
 
-    # Training the Model
-    # logger = TensorBoardLogger('TIMIT_logs', name='')
     logger = WandbLogger(
         name=TIMITConfig.run_name,
         project='SpeakerProfiling'
@@ -160,26 +159,7 @@ if __name__ == "__main__":
         resume_from_checkpoint=hparams.model_checkpoint,
         distributed_backend='ddp'
         )
-
-    #     # Run learning rate finder
-#     lr_finder = trainer.tuner.lr_find(model, train_dataloader=trainloader, val_dataloaders=valloader)
-    
-#     # Results can be found in
-#     lr_finder.results
-
-#     # Plot with
-#     fig = lr_finder.plot(suggest=True)
-#     fig.savefig('auto_lr_find_plot.png')
-
-#     # Pick point based on plot, or get suggestion
-#     new_lr = lr_finder.suggestion()
-#     embed()
-#     print("new lr = ", new_lr)
-#     # update hparams of the model
-#     model.hparams.lr = new_lr
     
     trainer.fit(model, train_dataloader=trainloader, val_dataloaders=valloader)
 
     print('\n\nCompleted Training...\nTesting the model with checkpoint -', model_checkpoint_callback.best_model_path)
-    #model = LightningModel.load_from_checkpoint(model_checkpoint_callback.best_model_path)
-    #trainer.test(model, test_dataloaders=testloader)

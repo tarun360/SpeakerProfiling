@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from conformer.encoder import ConformerEncoder
 from IPython import embed
 
 class UpstreamTransformer(nn.Module):
@@ -65,9 +64,9 @@ class UpstreamTransformerH(nn.Module):
     def forward(self, x, x_len):
         x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
         x = self.upstream(x)['last_hidden_state']
-        output_1 = self.transformer_encoder_1(x)
-        output_averaged_1 = torch.mean(output_1, dim=1)
-        height = self.height_regressor(output_averaged_1)
+        output = self.transformer_encoder_1(x)
+        output_averaged = torch.mean(output, dim=1)
+        height = self.height_regressor(output_averaged)
         return height
     
 # Age only models
@@ -87,7 +86,7 @@ class UpstreamTransformerA(nn.Module):
             for param in self.upstream.model.feature_extractor.conv_layers[5:].parameters():
                 param.requires_grad = True
         
-        self.transformer_encoder_1 = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True), num_layers=num_layers)
+        self.transformer_encoder = torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True), num_layers=num_layers)
         
         self.age_regressor = nn.Sequential(
             nn.Linear(feature_dim, 128),
@@ -97,7 +96,7 @@ class UpstreamTransformerA(nn.Module):
     def forward(self, x, x_len):
         x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
         x = self.upstream(x)['last_hidden_state']
-        output_1 = self.transformer_encoder_1(x)
-        output_averaged_1 = torch.mean(output_1, dim=1)
-        age = self.age_regressor(output_averaged_1)
+        output = self.transformer_encoder(x)
+        output_averaged = torch.mean(output, dim=1)
+        age = self.age_regressor(output_averaged)
         return age

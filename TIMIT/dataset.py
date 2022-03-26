@@ -7,10 +7,6 @@ import numpy as np
 import torchaudio
 import wavencoder
 from IPython import embed
-import random
-from spafe.features.lpc import lpc, lpcc
-from spafe.features.mfcc import mfcc
-import librosa
 
 class TIMITDataset(Dataset):
     def __init__(self,
@@ -25,6 +21,7 @@ class TIMITDataset(Dataset):
         self.is_train = is_train
         self.noise_dataset_path = hparams.noise_dataset_path
         self.data_type = hparams.data_type
+        self.gender_type = hparams.gender_type
         self.speed_change = hparams.speed_change
 
         self.speaker_list = self.df.loc[:, 'ID'].values.tolist()
@@ -32,13 +29,16 @@ class TIMITDataset(Dataset):
         self.gender_dict = {'M' : 0, 'F' : 1}
 
         new_files = []
+        if self.gender_type == None:
+            self.list_gender = [0, 1] # contain both male and female
+        else:
+            self.list_gender = [self.gender_type]
         for file in self.files:
             id = file.split('_')[0][1:]
             gender = self.gender_dict[self.df.loc[id, 'Sex']]
-            if(gender == 1):
+            if gender in self.list_gender:
                 new_files.append(file)
         self.files = new_files
-
         self.train_transform = None
         self.test_transform = None
 
@@ -64,7 +64,7 @@ class TIMITDataset(Dataset):
         height = self.df.loc[id, 'height']
         age =  self.df.loc[id, 'age']
         # self.get_age(id)
-        assert (gender == 1)
+        assert (gender in self.list_gender)
 
         wav, _ = torchaudio.load(os.path.join(self.wav_folder, file), normalize=True)
         
@@ -74,10 +74,10 @@ class TIMITDataset(Dataset):
         if self.is_train and self.train_transform:
             wav = self.train_transform(wav)  
         
-        h_mean = self.df[self.df['Use'] == 'TRN']['height'].mean()
-        h_std = self.df[self.df['Use'] == 'TRN']['height'].std()
-        a_mean = self.df[self.df['Use'] == 'TRN']['age'].mean()
-        a_std = self.df[self.df['Use'] == 'TRN']['age'].std()
+        h_mean = self.df[(self.df['Use'] == 'TRN') & (self.df['Sex'].isin(self.list_gender))]['height'].mean()
+        h_std = self.df[(self.df['Use'] == 'TRN') & (self.df['Sex'].isin(self.list_gender))]['height'].std()
+        a_mean = self.df[(self.df['Use'] == 'TRN') & (self.df['Sex'].isin(self.list_gender))]['age'].mean()
+        a_std = self.df[(self.df['Use'] == 'TRN') & (self.df['Sex'].isin(self.list_gender))]['age'].std()
         
         height = (height - h_mean)/h_std
         age = (age - a_mean)/a_std
