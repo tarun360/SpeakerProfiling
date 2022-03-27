@@ -2,6 +2,7 @@
 
 This Repository contains the code for estimating the Age and Height of a speaker with their speech signal. This repository uses [s3prl](https://github.com/s3prl/s3prl) library to load various upstream models like wav2vec2, CPC, TERA etc. This repository uses TIMIT dataset. 
 
+**_NOTE:_**  If you want to run the single encoder model, you should checkout the `singleEncoder` branch and follow the README in that branch.
 ## Installation
 
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install the required packages for preparing the dataset, training and testing the model.
