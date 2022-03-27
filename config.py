@@ -16,13 +16,19 @@ class TIMITConfig(object):
     gamma = 1
 
     # training type - AHG/H/A
-    training_type = 'H'
+    # training_type='AHG': for age and height estimation multi-task training 
+    # training_type='H': for height estimation single task training
+    # training_type='A': for age estimation single task training
+    training_type = 'AHG'
 
     # data type - raw/spectral
     data_type = 'raw' 
 
-    # choose which the gender you want to train the model on. Ex: None for both genders, 'M' for male, 'F' for female 
-    gender_type = 'M'
+    # choose which the gender you want to train the model on. 
+    # gender_type = None: for both genders
+    # gender_type = 'M': for male 
+    # gender_type = 'F': for female 
+    gender_type = None
 
     # RMSE, UncertaintyLoss
     loss = "RMSE"

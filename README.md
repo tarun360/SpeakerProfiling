@@ -41,6 +41,20 @@ python TIMIT/prepare_timit_data.py --path='path to timit data folder'
 ### Update Config and Logger
 Update the config.py file to update the upstream model, batch_size, gpus, lr, etc and change the preferred logger in train_.py files. Create a folder 'checkpoints' to save the best models.
 
+### Specify Training Task and Target Gender
+In the `config.py`, if you want train on single/multi multi task or single/multi gender of age and height estimation problem, we should change 2 fields: `training_type` (to choose training task) & `gender_type` (to choose target gender). To be more specific,
+For `gender_type` field:
+```bash
+gender = None # is to train on the data of both genders
+gender = 'M' # is to train on the data of male
+gender = 'F' # is to train on the data of female
+```
+For `training_type` field:
+```bash
+training_type='AHG' # is for age and height estimation multi-task training
+training_type='H' # is for height estimation single task training
+training_type='A' # is for age estimation single task training
+```
 ### Training
 ```bash
 python train_timit.py --data_path='path to final data folder' --speaker_csv_path='path to this repo/SpeakerProfiling/Dataset/data_info_height_age.csv'
