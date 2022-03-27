@@ -15,22 +15,14 @@ class TIMITConfig(object):
     beta = 1
     gamma = 1
 
-    # training type - AHG/H
+    # training type - AHG/H/A
     training_type = 'A'
 
     # data type - raw/spectral
     data_type = 'raw' 
 
-    # model type
-    ## AHG 
-    # wav2vecTransformer
-    
-    ## H
-    # wav2vecTransformer
-    model_type = 'UpstreamTransformerH'
-
     # choose which the gender you want to train the model on. Ex: None for both genders, 'M' for male, 'F' for female 
-    gender_type = None
+    gender_type = 'F'
 
     # RMSE, UncertaintyLoss
     loss = "RMSE"
@@ -59,6 +51,6 @@ class TIMITConfig(object):
     noise_dataset_path = '/home/shangeth/noise_dataset'
 
     # LR of optimizer
-    lr = 1e-4
+    lr = 1e-5
 
-    run_name = data_type + '_' + training_type + '_' + model_type
+    run_name = data_type + '_' + training_type #+ '_' + model_type

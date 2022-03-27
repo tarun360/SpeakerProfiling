@@ -27,13 +27,9 @@ class LightningModel(pl.LightningModule):
         super().__init__()
         # HPARAMS
         self.save_hyperparameters()
-        self.models = {
-            'UpstreamTransformer': UpstreamTransformer,
-            'UpstreamTransformerA': UpstreamTransformerA,
-            'UpstreamTransformerH': UpstreamTransformerH
-        }
+        self.model = UpstreamTransformer
         
-        self.model = self.models[HPARAMS['model_type']](upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
+        self.model = self.model(upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
             
         self.classification_criterion = MSE()
         self.regression_criterion = MSE()
@@ -50,7 +46,7 @@ class LightningModel(pl.LightningModule):
         self.csv_path = HPARAMS['speaker_csv_path']
         self.df = pd.read_csv(self.csv_path)
         if HPARAMS['gender_type'] is None:
-            list_gender = [0, 1]
+            list_gender = ['M', 'F']
         else:
             list_gender = [HPARAMS['gender_type']]
         self.h_mean = self.df[(self.df['Use'] == 'TRN') & (self.df['Sex'].isin(list_gender))]['height'].mean()

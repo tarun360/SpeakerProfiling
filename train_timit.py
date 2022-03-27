@@ -33,7 +33,7 @@ from TIMIT.dataset import TIMITDataset
 if TIMITConfig.training_type == 'H':
     from TIMIT.lightning_model_h import LightningModel
 if TIMITConfig.training_type == 'A':
-    from TIMIT.lightning_model_h import LightningModel
+    from TIMIT.lightning_model_a import LightningModel
 elif TIMITConfig.loss == 'RMSE':
     from TIMIT.lightning_model import LightningModel
 elif TIMITConfig.loss == 'UncertaintyLoss':
@@ -66,7 +66,6 @@ if __name__ == "__main__":
     parser.add_argument('--model_checkpoint', type=str, default=TIMITConfig.model_checkpoint)
     #     parser.add_argument('--noise_dataset_path', type=str, default=TIMITConfig.noise_dataset_path)
     parser.add_argument('--noise_dataset_path', type=str, default=None)
-    parser.add_argument('--model_type', type=str, default=TIMITConfig.model_type)
     parser.add_argument('--upstream_model', type=str, default=TIMITConfig.upstream_model)
     parser.add_argument('--gender_type', type=str, default=TIMITConfig.gender_type)
     parser.add_argument('--training_type', type=str, default=TIMITConfig.training_type)
