@@ -10,7 +10,6 @@ from pytorch_lightning.metrics.classification import Accuracy
 
 import pandas as pd
 import torch_optimizer as optim
-from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 
 
 from Model.models import UpstreamTransformerA
@@ -59,15 +58,15 @@ class LightningModel(pl.LightningModule):
     def count_trainable_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
-    def forward(self, x, x_len):
-        return self.model(x, x_len)
+    def forward(self, x):
+        return self.model(x)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return optimizer
 
     def training_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g, x_len = batch
+        x, y_h, y_a, y_g = batch
         y_h = torch.stack(y_h).reshape(-1,)
         y_a = torch.stack(y_a).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
@@ -136,12 +135,12 @@ class LightningModel(pl.LightningModule):
         female_idx = torch.nonzero(idx).view(-1)
         male_idx = torch.nonzero(1-idx).view(-1)
 
-        if 0 in self.list_gender:
+        if 'M' in self.list_gender:
             male_age_mae = self.mae_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean).item()
             male_age_rmse = self.rmse_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean).item()
             female_age_mae = 0
             femal_age_rmse = 0
-        if 1 in self.list_gender:
+        if 'F' in self.list_gender:
             male_age_mae = 0
             male_age_rmse = 0
             female_age_mae = self.mae_criterion(y_hat_a[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean).item()

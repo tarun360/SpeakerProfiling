@@ -170,7 +170,7 @@ class LightningModel(pl.LightningModule):
         female_idx = torch.nonzero(idx).view(-1)
         male_idx = torch.nonzero(1-idx).view(-1)
 
-        if 0 in self.list_gender:
+        if 'M' in self.list_gender:
             male_height_mae = self.mae_criterion(y_hat_h[male_idx]*self.h_std+self.h_mean, y_h[male_idx]*self.h_std+self.h_mean).item()
             male_age_mae = self.mae_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean).item()
             male_height_rmse = self.rmse_criterion(y_hat_h[male_idx]*self.h_std+self.h_mean, y_h[male_idx]*self.h_std+self.h_mean).item()
@@ -179,7 +179,7 @@ class LightningModel(pl.LightningModule):
             female_age_mae = None
             femal_height_rmse = None
             female_age_rmse = None
-        if 1 in self.list_gender:
+        if 'F' in self.list_gender:
             male_height_mae = None
             male_age_mae = None
             male_height_rmse = None

@@ -16,13 +16,13 @@ class TIMITConfig(object):
     gamma = 1
 
     # training type - AHG/H/A
-    training_type = 'A'
+    training_type = 'H'
 
     # data type - raw/spectral
     data_type = 'raw' 
 
     # choose which the gender you want to train the model on. Ex: None for both genders, 'M' for male, 'F' for female 
-    gender_type = 'F'
+    gender_type = 'M'
 
     # RMSE, UncertaintyLoss
     loss = "RMSE"

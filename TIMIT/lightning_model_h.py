@@ -30,7 +30,6 @@ class LightningModel(pl.LightningModule):
         self.model = UpstreamTransformerH
         
         self.model = self.model(upstream_model=HPARAMS['upstream_model'], num_layers=HPARAMS['num_layers'], feature_dim=HPARAMS['feature_dim'], unfreeze_last_conv_layers=HPARAMS['unfreeze_last_conv_layers'])
-            
         self.classification_criterion = MSE()
         self.regression_criterion = MSE()
         self.mae_criterion = MAE()
@@ -135,21 +134,21 @@ class LightningModel(pl.LightningModule):
         female_idx = torch.nonzero(idx).view(-1)
         male_idx = torch.nonzero(1-idx).view(-1)
 
-        if 0 in self.list_gender:
-            male_age_mae = self.mae_criterion(y_hat_h[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean).item()
-            male_age_rmse = self.rmse_criterion(y_hat_h[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean).item()
-            female_age_mae = 0
-            femal_age_rmse = 0
-        if 1 in self.list_gender:
-            male_age_mae = 0
-            male_age_rmse = 0
-            female_age_mae = self.mae_criterion(y_hat_h[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean).item()
-            femal_age_rmse = self.rmse_criterion(y_hat_h[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean).item()
+        if 'M' in self.list_gender:
+            male_height_mae = self.mae_criterion(y_hat_h[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean).item()
+            male_height_rmse = self.rmse_criterion(y_hat_h[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean).item()
+            female_height_mae = 0
+            femal_height_rmse = 0
+        if 'F' in self.list_gender:
+            male_height_mae = 0
+            male_height_rmse = 0
+            female_height_mae = self.mae_criterion(y_hat_h[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean).item()
+            femal_height_rmse = self.rmse_criterion(y_hat_h[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean).item()
         return {
-                'male_age_mae':male_age_mae,
-                'female_age_mae':female_age_mae,
-                'male_age_rmse':male_age_rmse,
-                'femal_age_rmse':femal_age_rmse,
+                'male_height_mae':male_height_mae,
+                'female_height_mae':female_height_mae,
+                'male_height_rmse':male_height_rmse,
+                'femal_height_rmse':femal_height_rmse,
         }
     
     def test_epoch_end(self, outputs):

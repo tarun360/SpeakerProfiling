@@ -32,12 +32,13 @@ seed_torch()
 from TIMIT.dataset import TIMITDataset
 if TIMITConfig.training_type == 'H':
     from TIMIT.lightning_model_h import LightningModel
-if TIMITConfig.training_type == 'A':
+elif TIMITConfig.training_type == 'A':
     from TIMIT.lightning_model_a import LightningModel
-elif TIMITConfig.loss == 'RMSE':
-    from TIMIT.lightning_model import LightningModel
-elif TIMITConfig.loss == 'UncertaintyLoss':
-    from TIMIT.lightning_model_uncertainty_loss import LightningModel
+else:
+    if TIMITConfig.loss == 'RMSE':
+        from TIMIT.lightning_model import LightningModel
+    elif TIMITConfig.loss == 'UncertaintyLoss':
+        from TIMIT.lightning_model_uncertainty_loss import LightningModel
 
 import torch.nn.utils.rnn as rnn_utils
 def collate_fn(batch):
