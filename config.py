@@ -2,10 +2,10 @@ import os
 
 class TIMITConfig(object):
     # path to the unzuipped TIMIT data folder
-    data_path = '/notebooks/SpeakerProfiling/TIMIT_Dataset/wav_data/'
+    data_path = 'data/wav_data/'
 
     # path to csv file containing age, heights of timit speakers
-    speaker_csv_path = os.path.join(str(os.getcwd()), '/notebooks/SpeakerProfiling/Dataset/data_info_height_age.csv')
+    speaker_csv_path = os.path.join(str(os.getcwd()), 'Dataset/data_info_height_age.csv')
 
     batch_size = 8
     epochs = 100

@@ -7,13 +7,13 @@ import os
 from TIMIT.dataset import TIMITDataset
 if TIMITConfig.training_type == 'H':
     from TIMIT.lightning_model_h import LightningModel
-if TIMITConfig.training_type == 'A':
-    from TIMIT.lightning_model_h import LightningModel
-elif TIMITConfig.loss == 'RMSE':
-    from TIMIT.lightning_model import LightningModel
-elif TIMITConfig.loss == 'UncertaintyLoss':
-    from TIMIT.lightning_model_uncertainty_loss import LightningModel
-
+elif TIMITConfig.training_type == 'A':
+    from TIMIT.lightning_model_a import LightningModel
+else:
+    if TIMITConfig.loss == 'RMSE':
+        from TIMIT.lightning_model import LightningModel
+    elif TIMITConfig.loss == 'UncertaintyLoss':
+        from TIMIT.lightning_model_uncertainty_loss import LightningModel
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error, accuracy_score
 import pytorch_lightning as pl
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     csv_path = hparams.speaker_csv_path
     df = pd.read_csv(csv_path)
     if hparams.gender_type is None:
-        list_gender = [0, 1]
+        list_gender = ['M', 'F']
     else:
         list_gender = [hparams.gender_type]
     h_mean = df[(df['Use'] == 'TRN') & (df['Sex'].isin(list_gender))]['height'].mean()
@@ -109,7 +109,7 @@ if __name__ == "__main__":
                 y_a = torch.stack(y_a).reshape(-1,)
                 y_g = torch.stack(y_g).reshape(-1,)
                 
-                y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
+                y_hat_h, y_hat_a, y_hat_g = model(x)
                 y_hat_h = y_hat_h.to('cpu')
                 y_hat_a = y_hat_a.to('cpu')
                 y_hat_g = y_hat_g.to('cpu')
@@ -169,7 +169,7 @@ if __name__ == "__main__":
                 y_a = torch.stack(y_a).reshape(-1,)
                 y_g = torch.stack(y_g).reshape(-1,)
                 
-                y_hat = model(x, x_len)
+                y_hat = model(x)
                 y_hat = y_hat.to('cpu')
                 if TIMITConfig.training_type == 'A':
                     age_pred.append((y_hat*a_std+a_mean).item())
@@ -184,7 +184,7 @@ if __name__ == "__main__":
             if TIMITConfig.training_type == 'A':
                 age_true = np.array(age_true)
                 age_pred = np.array(age_pred)
-                if 0 in list_gender:
+                if 'M' in list_gender:
                     amae = mean_absolute_error(age_true[male_idx], age_pred[male_idx])
                     armse = mean_squared_error(age_true[male_idx], age_pred[male_idx], squared=False)
                     print(armse, amae)
@@ -195,7 +195,7 @@ if __name__ == "__main__":
             else:
                 height_true = np.array(height_true)
                 height_pred = np.array(height_pred)
-                if 0 in list_gender:
+                if 'M'  in list_gender:
                     hmae = mean_absolute_error(height_true[male_idx], height_pred[male_idx])
                     hrmse = mean_squared_error(height_true[male_idx], height_pred[male_idx], squared=False)
                     print(hrmse, hmae)

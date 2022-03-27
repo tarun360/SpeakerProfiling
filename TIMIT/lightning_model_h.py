@@ -57,8 +57,8 @@ class LightningModel(pl.LightningModule):
     def count_trainable_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
-    def forward(self, x, x_len):
-        return self.model(x, x_len)
+    def forward(self, x):
+        return self.model(x)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
@@ -70,7 +70,7 @@ class LightningModel(pl.LightningModule):
         y_a = torch.stack(y_a).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        y_hat_h = self(x, x_len)
+        y_hat_h = self(x)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h = y_hat_h.view(-1).float()
 
@@ -99,7 +99,7 @@ class LightningModel(pl.LightningModule):
         y_a = torch.stack(y_a).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        y_hat_h = self(x, x_len)
+        y_hat_h = self(x)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h = y_hat_h.view(-1).float()
 
@@ -126,7 +126,7 @@ class LightningModel(pl.LightningModule):
         y_a = torch.stack(y_a).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
-        y_hat_h = self(x, x_len)
+        y_hat_h = self(x)
         y_h, y_a, y_g = y_h.view(-1).float(), y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_h = y_hat_h.view(-1).float()
 

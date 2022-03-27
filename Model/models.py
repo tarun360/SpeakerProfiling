@@ -92,8 +92,8 @@ class UpstreamTransformerA(nn.Module):
             nn.Linear(128, 1),
         )
 
-    def forward(self, x, x_len):
-        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+    def forward(self, x):
+        x = [wav for wav in x.squeeze(1)]
         x = self.upstream(x)['last_hidden_state']
         output = self.transformer_encoder(x)
         output_averaged = torch.mean(output, dim=1)
