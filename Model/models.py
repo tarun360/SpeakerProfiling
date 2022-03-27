@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from IPython import embed
 
 class UpstreamTransformer(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768, unfreeze_last_conv_layers=False):
@@ -61,8 +60,8 @@ class UpstreamTransformerH(nn.Module):
             nn.Linear(128, 1),
         )
 
-    def forward(self, x, x_len):
-        x = [torch.narrow(wav,0,0,x_len[i]) for (i,wav) in enumerate(x.squeeze(1))]
+    def forward(self, x):
+        x = [wav for wav in x.squeeze(1)]
         x = self.upstream(x)['last_hidden_state']
         output = self.transformer_encoder_1(x)
         output_averaged = torch.mean(output, dim=1)
