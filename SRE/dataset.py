@@ -9,17 +9,13 @@ import wavencoder
 class SREDataset(Dataset):
     def __init__(self,
     data_dir,
-    hparams,
-    data_type=True,
+    data_type,
     ):
         self.data_type = data_type
-        self.data_dir = data_dir
+        self.data_dir = os.path.join(data_dir, data_type)
         self.csv_file = os.path.join(data_dir, '{}.csv'.format(data_type))
         self.df = pd.read_csv(self.csv_file)
         self.gender_dict = {'m' : 0, 'f' : 1}
-        self.train_transform = None
-
-        self.test_transform = None
 
     def __len__(self):
         return len(self.df)
