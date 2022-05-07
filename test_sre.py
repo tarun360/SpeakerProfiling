@@ -58,14 +58,14 @@ if __name__ == "__main__":
     
     # Testing Dataset
     test_set = SREDataset(
-        data_dir='path/data',
+        data_dir='/home/project/12001458/ductuan0/ISCAP_Age_Estimation/data',
         data_type='test'
     )
 
     ## Testing Dataloader
     testloader = data.DataLoader(
         test_set, 
-        batch_size=1, 
+        batch_size=12, 
         shuffle=False, 
         num_workers=hparams.n_workers,
         collate_fn = collate_fn,
@@ -73,8 +73,6 @@ if __name__ == "__main__":
 
     csv_path = hparams.speaker_csv_path
     df = pd.read_csv(csv_path)
-    h_mean = df[df['Use'] == 'TRN']['height'].mean()
-    h_std = df[df['Use'] == 'TRN']['height'].std()
     a_mean = df[df['Use'] == 'TRN']['age'].mean()
     a_std = df[df['Use'] == 'TRN']['age'].std()
 
@@ -89,7 +87,7 @@ if __name__ == "__main__":
         age_true = []
         gender_pred = []
         gender_true = []
-
+        print(torch.cuda.is_available())
         for batch in tqdm(testloader):
             x, y_a, y_g, x_len = batch
             x = x.to(device)
@@ -100,12 +98,10 @@ if __name__ == "__main__":
             y_hat_h = y_hat_h.to('cpu')
             y_hat_a = y_hat_a.to('cpu')
             y_hat_g = y_hat_g.to('cpu')
-            age_pred.append((y_hat_a*a_std+a_mean).item())
-            gender_pred.append(y_hat_g>0.5)
-
-            age_true.append(( y_a*a_std+a_mean).item())
-            gender_true.append(y_g[0])
-
+            age_pred += [age.item() * a_std + a_mean for age in y_hat_a]
+            gender_pred += [gender.item() > 0.5 for gender in y_hat_g]
+            age_true += y_a.tolist()
+            gender_true += y_g.tolist()
         female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
         male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
 
@@ -123,8 +119,7 @@ if __name__ == "__main__":
         amae = mean_absolute_error(age_true, age_pred)
         armse = mean_squared_error(age_true, age_pred, squared=False)
         print(armse, amae)
-        
-        gender_pred_ = [int(pred[0][0] == True) for pred in gender_pred]
+        gender_pred_ = [int(pred == True) for pred in gender_pred]
         print(accuracy_score(gender_true, gender_pred_))
     else:
         print('Model chekpoint not found for Testing !!!')
