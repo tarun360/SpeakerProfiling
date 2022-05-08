@@ -26,10 +26,10 @@ with open(os.path.join(data_dir, 'all', 'spk2gender'), 'r') as spk2gender:
 
 list_data_type = ['train', 'valid', 'test']
 
+data_df = pd.DataFrame(columns=['utt_id', 'speaker_id', 'wav_path', 'Use', 'Sex', 'age'], index=None)
 for data_type in list_data_type:
     print('Processing {} dataset'.format(data_type))
     data_path = os.path.join(data_dir, data_type)
-    data_df = pd.DataFrame(columns=['utt_id', 'speaker_id', 'utt_wav_path', 'speaker_gender', 'speaker_age'], index=None)
     speaker_age_dict = {}
     
     with open(os.path.join(data_path, 'utt2age'), 'r') as utt2age_file:
@@ -46,18 +46,19 @@ for data_type in list_data_type:
         lst_data_record = []
         for line in utt2path_file:
             line = line.strip('\n')
-            utt_id, utt_wav_path = line.split(' ')
+            utt_id, wav_path = line.split(' ')
             speaker_id = utt_id.split('_')[0]
             if speaker_id.startswith('sre2010'):
                 speaker_id = speaker_id[:14]
             data_record = {
                 'utt_id': utt_id,
                 'speaker_id': speaker_id,
-                'utt_wav_path': utt_wav_path,
-                'speaker_gender': speaker_gender_dict[speaker_id],
-                'speaker_age': speaker_age_dict[speaker_id]
+                'wav_path': wav_path,
+                'Use': data_type,
+                'Sex': speaker_gender_dict[speaker_id],
+                'age': speaker_age_dict[speaker_id]
             }
             lst_data_record.append(data_record)
-        data_df = pd.concat([data_df, pd.DataFrame.from_records(lst_data_record)], ignore_index=True)
-    data_df.to_csv(os.path.join(data_path, '{}.csv'.format(data_type)), index=False)
-    print('Data saved at ', data_path)
+    data_df = pd.concat([data_df, pd.DataFrame.from_records(lst_data_record)], ignore_index=True)
+data_df.to_csv(os.path.join(data_dir, 'data_info_age.csv'), index=False)
+print('Data saved at ', data_dir)

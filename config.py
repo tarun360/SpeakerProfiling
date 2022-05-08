@@ -4,7 +4,7 @@ import json
 with open("config.json", "r") as jsonfile:
     config = json.load(jsonfile)
 
-class TIMITConfig(object):
+class ModelConfig(object):
     
     dir = config['dataDir']['dir']
     

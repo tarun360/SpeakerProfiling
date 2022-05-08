@@ -1,4 +1,4 @@
-from config import TIMITConfig
+from config import ModelConfig
 
 from argparse import ArgumentParser
 from multiprocessing import Pool
@@ -28,20 +28,20 @@ def collate_fn(batch):
 if __name__ == "__main__":
 
     parser = ArgumentParser(add_help=True)
-    parser.add_argument('--data_path', type=str, default=TIMITConfig.data_path)
-    parser.add_argument('--speaker_csv_path', type=str, default=TIMITConfig.speaker_csv_path)
-    parser.add_argument('--batch_size', type=int, default=TIMITConfig.batch_size)
-    parser.add_argument('--epochs', type=int, default=TIMITConfig.epochs)
-    parser.add_argument('--num_layers', type=int, default=TIMITConfig.num_layers)
-    parser.add_argument('--feature_dim', type=int, default=TIMITConfig.feature_dim)
-    parser.add_argument('--lr', type=float, default=TIMITConfig.lr)
-    parser.add_argument('--gpu', type=int, default=TIMITConfig.gpu)
-    parser.add_argument('--n_workers', type=int, default=TIMITConfig.n_workers)
+    parser.add_argument('--data_path', type=str, default=ModelConfig.data_path)
+    parser.add_argument('--speaker_csv_path', type=str, default=ModelConfig.speaker_csv_path)
+    parser.add_argument('--batch_size', type=int, default=ModelConfig.batch_size)
+    parser.add_argument('--epochs', type=int, default=ModelConfig.epochs)
+    parser.add_argument('--num_layers', type=int, default=ModelConfig.num_layers)
+    parser.add_argument('--feature_dim', type=int, default=ModelConfig.feature_dim)
+    parser.add_argument('--lr', type=float, default=ModelConfig.lr)
+    parser.add_argument('--gpu', type=int, default=ModelConfig.gpu)
+    parser.add_argument('--n_workers', type=int, default=ModelConfig.n_workers)
     parser.add_argument('--dev', type=str, default=False)
-    parser.add_argument('--model_checkpoint', type=str, default=TIMITConfig.model_checkpoint)
-    parser.add_argument('--upstream_model', type=str, default=TIMITConfig.upstream_model)
-    parser.add_argument('--model_type', type=str, default=TIMITConfig.model_type)
-    parser.add_argument('--narrow_band', type=str, default=TIMITConfig.narrow_band)
+    parser.add_argument('--model_checkpoint', type=str, default=ModelConfig.model_checkpoint)
+    parser.add_argument('--upstream_model', type=str, default=ModelConfig.upstream_model)
+    parser.add_argument('--model_type', type=str, default=ModelConfig.model_type)
+    parser.add_argument('--narrow_band', type=str, default=ModelConfig.narrow_band)
     
     parser = pl.Trainer.add_argparse_args(parser)
     hparams = parser.parse_args()
@@ -50,9 +50,10 @@ if __name__ == "__main__":
     if not torch.cuda.is_available():
         device = 'cpu'
         hparams.gpu = 0
+        print(f'Testing Model on TIMIT Dataset on CPU')
     else:        
         device = 'cuda'
-        print(f'Training Model on TIMIT Dataset\n#Cores = {hparams.n_workers}\t#GPU = {hparams.gpu}')
+        print(f'Testing Model on TIMIT Dataset\n#Cores = {hparams.n_workers}\t#GPU = {hparams.gpu}')
     
     # Testing Dataset
     test_set = TIMITDataset(
