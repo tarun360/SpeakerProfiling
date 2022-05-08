@@ -8,8 +8,8 @@ import random
 import numpy as np
 
 class SREDataset(Dataset):
-    def __init__(self, data_dir, data_type, is_train):
-        self.csv_file = os.path.join(data_dir, 'data_info_age.csv')
+    def __init__(self, hparams, data_type, is_train):
+        self.csv_file = hparams.speaker_csv_path
         self.df_full = pd.read_csv(self.csv_file)
         self.df = self.df[self.df['Use'] == data_type]
         self.gender_dict = {'m' : 0, 'f' : 1}

@@ -34,9 +34,9 @@ class LightningModel(pl.LightningModule):
 
         self.lr = HPARAMS['lr']
 
-        self.df = pd.read_csv(os.path.join(HPARAMS['data_path'], 'data_info_age.csv'))
-        self.a_mean = self.df['age'].mean()
-        self.a_std = self.df['age'].std()
+        self.df = pd.read_csv(HPARAMS['speaker_csv_path'])
+        self.a_mean = self.df[self.df['Use'] == 'train']['age'].mean()
+        self.a_std = self.df[self.df['Use'] == 'train']['age'].std()
 
         print(f"Model Details: #Params = {self.count_total_parameters()}\t#Trainable Params = {self.count_trainable_parameters()}")
 
