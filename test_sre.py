@@ -59,7 +59,7 @@ if __name__ == "__main__":
     
     # Testing Dataset
     test_set = SREDataset(
-        data_dir = hparams.data_path,
+        hparams = hparams,
         data_type='test',
         is_train=True
     )

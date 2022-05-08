@@ -9,12 +9,14 @@ import numpy as np
 
 class SREDataset(Dataset):
     def __init__(self, hparams, data_type, is_train):
-        self.csv_file = hparams.speaker_csv_path
-        self.df_full = pd.read_csv(self.csv_file)
-        self.df = self.df[self.df['Use'] == data_type]
+        self.df_full = pd.read_csv(hparams.speaker_csv_path)
+        self.df = self.df_full[self.df_full['Use'] == data_type].reset_index(drop=True)
         self.gender_dict = {'m' : 0, 'f' : 1}
         self.resampleUp = torchaudio.transforms.Resample(orig_freq=8000, new_freq=16000)
         self.is_train = is_train
+        self.pad_crop_transform = wavencoder.transforms.Compose([
+                wavencoder.transforms.PadCrop(pad_crop_length=3*16000, pad_position='center', crop_position='center'),    
+            ])
 
     def __len__(self):
         return len(self.df.index)
@@ -30,6 +32,7 @@ class SREDataset(Dataset):
         if(wav.shape[0] != 1):
             wav = torch.mean(wav, dim=0)
             wav = self.resampleUp(wav)
+            wav = self.pad_crop_transform(wav)
 
         a_mean = self.df_full[self.df_full['Use'] == 'train']['age'].mean()
         a_std = self.df_full[self.df_full['Use'] == 'train']['age'].std()
@@ -48,6 +51,7 @@ class SREDataset(Dataset):
             if(mixup_wav.shape[0] != 1):
                 mixup_wav = torch.mean(mixup_wav, dim=0) 
                 mixup_wav = self.resampleUp(mixup_wav)
+                mixup_wav = self.pad_crop_transform(mixup_wav)
 
             mixup_age = (mixup_age - a_mean)/a_std
             

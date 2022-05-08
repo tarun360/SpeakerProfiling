@@ -43,6 +43,7 @@ if __name__ == "__main__":
 
     parser = ArgumentParser(add_help=True)
     parser.add_argument('--data_path', type=str, default=ModelConfig.data_path)
+    parser.add_argument('--speaker_csv_path', type=str, default=ModelConfig.speaker_csv_path)
     parser.add_argument('--batch_size', type=int, default=ModelConfig.batch_size)
     parser.add_argument('--epochs', type=int, default=ModelConfig.epochs)
     parser.add_argument('--num_layers', type=int, default=ModelConfig.num_layers)
@@ -67,7 +68,7 @@ if __name__ == "__main__":
     # Training, Validation and Testing Dataset
     ## Training Dataset
     train_set = SREDataset(
-        data_dir = hparams.data_path,
+        hparams = hparams,
         data_type = 'train',
         is_train = True
     )
@@ -81,7 +82,7 @@ if __name__ == "__main__":
     )
     ## Validation Dataset
     valid_set = SREDataset(
-        data_dir = hparams.data_path,
+        hparams = hparams,
         data_type = 'valid',
         is_train = False
     )
@@ -95,7 +96,7 @@ if __name__ == "__main__":
     )
     ## Testing Dataset
     test_set = SREDataset(
-        data_dir = hparams.data_path, 
+        hparams = hparams,
         data_type = 'test',
         is_train = False
     )
@@ -112,7 +113,8 @@ if __name__ == "__main__":
 
     logger = WandbLogger(
         name=ModelConfig.run_name,
-        project='SpeakerProfiling'
+        project='SpeakerProfilingSRE',
+        offline=True
     )
 
     model = LightningModel(vars(hparams))

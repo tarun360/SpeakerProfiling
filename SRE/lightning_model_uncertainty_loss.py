@@ -13,7 +13,7 @@ import os
 
 from Model.models import Wav2vec2BiEncoderAgeEstimation
 
-from Model.utils import RMSELoss, UncertaintyLoss
+from Model.utils import RMSELoss, UncertaintyLossAG
 
 class LightningModel(pl.LightningModule):
     def __init__(self, HPARAMS):
@@ -30,7 +30,7 @@ class LightningModel(pl.LightningModule):
         self.rmse_criterion = RMSELoss()
         self.accuracy = Accuracy()
 
-        self.uncertainty_loss = UncertaintyLoss()
+        self.uncertainty_loss = UncertaintyLossAG()
 
         self.lr = HPARAMS['lr']
 
@@ -83,8 +83,7 @@ class LightningModel(pl.LightningModule):
         self.log('train/g',gender_acc, on_step=False, on_epoch=True, prog_bar=True)
 
     def validation_step(self, batch, batch_idx):
-        x, y_h, y_a, y_g, x_len = batch
-        y_h = torch.stack(y_h).reshape(-1,)
+        x, y_a, y_g, x_len = batch
         y_a = torch.stack(y_a).reshape(-1,)
         y_g = torch.stack(y_g).reshape(-1,)
         
@@ -92,7 +91,7 @@ class LightningModel(pl.LightningModule):
         y_a, y_g = y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_a, y_hat_g = y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
 
-        loss = self.uncertainty_loss(torch.cat((y_hat_a, y_hat_g)), torch.cat((y_h, y_a, y_g)))
+        loss = self.uncertainty_loss(torch.cat((y_hat_a, y_hat_g)), torch.cat((y_a, y_g)))
 
         age_mae = self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
