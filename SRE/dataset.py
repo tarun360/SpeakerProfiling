@@ -24,6 +24,7 @@ class SREDataset(Dataset):
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
+        utt_id = self.df.loc[idx, 'utt_id']
         gender = self.gender_dict[self.df.loc[idx, 'Sex']]
         age = self.df.loc[idx, 'age']
         wav_path = self.df.loc[idx, 'wav_path']
@@ -70,4 +71,4 @@ class SREDataset(Dataset):
             age = lam*age + (1-lam)*mixup_age
             gender = lam*gender + (1-lam)*mixup_gender
 
-        return wav, torch.FloatTensor([age]), torch.FloatTensor([gender])
+        return utt_id, wav, torch.FloatTensor([age]), torch.FloatTensor([gender])

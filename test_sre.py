@@ -14,12 +14,14 @@ import pytorch_lightning as pl
 
 import torch
 import torch.utils.data as data
+import torch.nn.utils.rnn as rnn_utils
 
 from tqdm import tqdm 
 import pandas as pd
 import numpy as np
+from statistics import mean, mode
 
-import torch.nn.utils.rnn as rnn_utils
+
 def collate_fn(batch):
     (seq, age, gender) = zip(*batch)
     seql = [x.reshape(-1,) for x in seq]
@@ -83,14 +85,12 @@ if __name__ == "__main__":
         model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
         model.to(device)
         model.eval()
-        height_pred = []
-        height_true = []
-        age_pred = []
-        age_true = []
-        gender_pred = []
-        gender_true = []
+        record2predgender_dict = {}
+        record2predage_dict = {}
+        record2labelgender_dict = {}
+        record2labelage_dict = {}
         for batch in tqdm(testloader):
-            x, y_a, y_g, x_len = batch
+            utt_id, x, y_a, y_g, x_len = batch
             x = x.to(device)
             y_a = torch.stack(y_a).reshape(-1,)
             y_g = torch.stack(y_g).reshape(-1,)
@@ -99,11 +99,32 @@ if __name__ == "__main__":
             y_hat_h = y_hat_h.to('cpu')
             y_hat_a = y_hat_a.to('cpu')
             y_hat_g = y_hat_g.to('cpu')
-            age_pred += [age.item() * a_std + a_mean for age in y_hat_a]
-            gender_pred += [gender.item() > 0.5 for gender in y_hat_g]
-            age_true += [age.item() * a_std + a_mean for age in y_a]
-            gender_true += y_g.tolist()
+            age_pred = [age.item() * a_std + a_mean for age in y_hat_a]
+            gender_pred = [gender.item() > 0.5 for gender in y_hat_g]
+            age_true = [age.item() * a_std + a_mean for age in y_a]
+            gender_true = y_g.tolist()
 
+            for i, utt in enumerate(utt_id.tolist()):
+                record_id = "_".join(utt.split("_")[:-2])
+                if record_id in record2predgender_dict.keys():
+                    record2predgender_dict[record_id].append(gender_pred[i])
+                    record2predage_dict[record_id].append(age_pred[i])
+                else:    
+                    record2predgender_dict[record_id] = [gender_pred[i]]
+                    record2predage_dict[record_id] = [age_pred[i]]
+                    record2labelgender_dict[record_id] = gender_true[i]
+                    record2labelage_dict[record_id] = age_true[i]
+
+        age_pred = []
+        gender_pred = []
+        age_true = []
+        gender_true = []
+        for record_id in record2predgender_dict.keys():
+            age_pred.append(mean(record2predage_dict[record_id]))
+            gender_pred.append(mode(record2predgender_dict[record_id]))
+            age_true.append(record2labelage_dict[record_id])
+            gender_true.append(record2labelgender_dict[record_id])
+        
         female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
         male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
 
