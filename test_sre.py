@@ -23,11 +23,11 @@ from statistics import mean, mode
 
 
 def collate_fn(batch):
-    (seq, age, gender) = zip(*batch)
+    (utt_id, seq, age, gender) = zip(*batch)
     seql = [x.reshape(-1,) for x in seq]
     seq_length = [x.shape[0] for x in seql]
     data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
-    return data, age, gender, seq_length
+    return utt_id, data, age, gender, seq_length
 
 if __name__ == "__main__":
 
@@ -63,13 +63,13 @@ if __name__ == "__main__":
     test_set = SREDataset(
         hparams = hparams,
         data_type='test',
-        is_train=True
+        is_train=False
     )
 
     ## Testing Dataloader
     testloader = data.DataLoader(
         test_set, 
-        batch_size=12, 
+        batch_size=hparams.batch_size, 
         shuffle=False, 
         num_workers=hparams.n_workers,
         collate_fn = collate_fn,
@@ -94,7 +94,6 @@ if __name__ == "__main__":
             x = x.to(device)
             y_a = torch.stack(y_a).reshape(-1,)
             y_g = torch.stack(y_g).reshape(-1,)
-            
             y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
             y_hat_h = y_hat_h.to('cpu')
             y_hat_a = y_hat_a.to('cpu')
@@ -104,7 +103,7 @@ if __name__ == "__main__":
             age_true = [age.item() * a_std + a_mean for age in y_a]
             gender_true = y_g.tolist()
 
-            for i, utt in enumerate(utt_id.tolist()):
+            for i, utt in enumerate(utt_id):
                 record_id = "_".join(utt.split("_")[:-2])
                 if record_id in record2predgender_dict.keys():
                     record2predgender_dict[record_id].append(gender_pred[i])

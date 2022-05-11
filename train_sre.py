@@ -33,11 +33,11 @@ from SRE.lightning_model_uncertainty_loss import LightningModel
 
 import torch.nn.utils.rnn as rnn_utils
 def collate_fn(batch):
-    (seq, age, gender) = zip(*batch)
+    (utt_id, seq, age, gender) = zip(*batch)
     seql = [x.reshape(-1,) for x in seq]
     seq_length = [x.shape[0] for x in seql]
     data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
-    return data, age, gender, seq_length
+    return utt_id, data, age, gender, seq_length
 
 if __name__ == "__main__":
 
