@@ -7,11 +7,16 @@ class Wav2vec2BiEncoder(nn.Module):
         super().__init__()
         self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
 
+        for i, encoder_layer in enumerate(self.upstream.model.encoder.layers):
+            fused_layer = [self.model.encoder.layers[i], ResidualAdapterBlock(feature_dim, 384)]
+            self.model.encoder.layers[i] = nn.Sequential(*fused_layer)
+
         for param in self.upstream.parameters():
-            param.requires_grad = True
-       
-        for param in self.upstream.model.feature_extractor.conv_layers[:5].parameters():
             param.requires_grad = False
+       
+        for i, encoder_layer in enumerate(self.upstream.model.encoder.layers):
+            for param, apdapter_block in self.upstream.model.encoder.layers[i][1]:
+                param.requires_grad = True
         
         encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
         self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
@@ -100,3 +105,20 @@ class Wav2vec2BiEncoderAgeEstimation(nn.Module):
         age = self.age_regressor(output)
         return age, gender
 
+
+class ResidualAdapterBlock(nn.Module):
+    def __init__(self, input_dim, proj_dim):
+        super().__init__()
+        self.input_dim = input_dim
+        self.proj_dim = proj_dim
+        self.ln = nn.LayerNorm(normalized_shape=(self.input_dim, ))
+        self.down_proj = nn.Linear(self.input_dim, self.proj_dim)
+        self.relu = nn.ReLU()
+        self.up_proj = nn.Linear(self.proj_dim, self.input_dim)
+
+    def forward(self, x):
+        x = self.ln(x)
+        x = self.down_proj(x)
+        x = self.relu(x)
+        x = self.up_proj(x)
+        return x
