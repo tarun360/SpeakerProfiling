@@ -115,7 +115,8 @@ if __name__ == "__main__":
 
     logger = WandbLogger(
         name=ModelConfig.run_name,
-        project='SpeakerProfiling'
+        project='SpeakerProfiling',
+        offline=True
     )
 
     model = LightningModel(vars(hparams))

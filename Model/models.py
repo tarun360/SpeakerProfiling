@@ -7,16 +7,17 @@ class Wav2vec2BiEncoder(nn.Module):
         super().__init__()
         self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
 
-        for i, encoder_layer in enumerate(self.upstream.model.encoder.layers):
-            fused_layer = [self.model.encoder.layers[i], ResidualAdapterBlock(feature_dim, 384)]
-            self.model.encoder.layers[i] = nn.Sequential(*fused_layer)
+        n_encoder_layer = len(self.upstream.model.encoder.layers)
+        for i in range(n_encoder_layer):
+            self.upstream.model.encoder.layers.insert(2*i + 1, ResidualAdapterBlock(feature_dim, 384))
 
         for param in self.upstream.parameters():
             param.requires_grad = False
        
         for i, encoder_layer in enumerate(self.upstream.model.encoder.layers):
-            for param, apdapter_block in self.upstream.model.encoder.layers[i][1]:
-                param.requires_grad = True
+            if i % 2 != 0:
+                for param in self.upstream.model.encoder.layers[i].parameters():
+                    param.requires_grad = True
         
         encoder_layer_M = torch.nn.TransformerEncoderLayer(d_model=feature_dim, nhead=8, batch_first=True)
         self.transformer_encoder_M = torch.nn.TransformerEncoder(encoder_layer_M, num_layers=num_layers)
@@ -116,9 +117,9 @@ class ResidualAdapterBlock(nn.Module):
         self.relu = nn.ReLU()
         self.up_proj = nn.Linear(self.proj_dim, self.input_dim)
 
-    def forward(self, x):
+    def forward(self, x, self_attn_padding_mask=None, need_weights=None):
         x = self.ln(x)
         x = self.down_proj(x)
         x = self.relu(x)
         x = self.up_proj(x)
-        return x
+        return x, None
