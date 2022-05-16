@@ -7,7 +7,8 @@ import os
 from TIMIT.dataset import TIMITDataset
 from SRE.dataset import SREDataset
 
-from TIMIT.lightning_model_uncertainty_loss import LightningModel
+#from TIMIT.lightning_model_uncertainty_loss import LightningModel
+from SRE.lightning_model_uncertainty_loss import LightningModel
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error, accuracy_score
 import pytorch_lightning as pl
@@ -69,7 +70,7 @@ if __name__ == "__main__":
     ## Testing Dataloader
     testloader = data.DataLoader(
         test_set, 
-        batch_size=hparams.batch_size, 
+        batch_size=20,#hparams.batch_size, 
         shuffle=False, 
         num_workers=hparams.n_workers,
         collate_fn = collate_fn,
@@ -85,24 +86,29 @@ if __name__ == "__main__":
         model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
         model.to(device)
         model.eval()
-        record2predgender_dict = {}
-        record2predage_dict = {}
-        record2labelgender_dict = {}
-        record2labelage_dict = {}
+        #record2predgender_dict = {}
+        #record2predage_dict = {}
+        #record2labelgender_dict = {}
+        #record2labelage_dict = {}
+        age_pred = []
+        gender_pred = []
+        age_true = []
+        gender_true = []
         for batch in tqdm(testloader):
             utt_id, x, y_a, y_g, x_len = batch
             x = x.to(device)
             y_a = torch.stack(y_a).reshape(-1,)
             y_g = torch.stack(y_g).reshape(-1,)
-            y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
-            y_hat_h = y_hat_h.to('cpu')
+            y_hat_a, y_hat_g = model(x, x_len)
+            #y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
+            #y_hat_h = y_hat_h.to('cpu')
             y_hat_a = y_hat_a.to('cpu')
             y_hat_g = y_hat_g.to('cpu')
-            age_pred = [age.item() * a_std + a_mean for age in y_hat_a]
-            gender_pred = [gender.item() > 0.5 for gender in y_hat_g]
-            age_true = [age.item() * a_std + a_mean for age in y_a]
-            gender_true = y_g.tolist()
-
+            age_pred += [age.item() * a_std + a_mean for age in y_hat_a]
+            gender_pred += [gender.item() > 0.5 for gender in y_hat_g]
+            age_true += [age.item() * a_std + a_mean for age in y_a]
+            gender_true += y_g.tolist()
+        """
             for i, utt in enumerate(utt_id):
                 record_id = "_".join(utt.split("_")[:-2])
                 if record_id in record2predgender_dict.keys():
@@ -113,7 +119,7 @@ if __name__ == "__main__":
                     record2predage_dict[record_id] = [age_pred[i]]
                     record2labelgender_dict[record_id] = gender_true[i]
                     record2labelage_dict[record_id] = age_true[i]
-
+        
         age_pred = []
         gender_pred = []
         age_true = []
@@ -123,7 +129,8 @@ if __name__ == "__main__":
             gender_pred.append(mode(record2predgender_dict[record_id]))
             age_true.append(record2labelage_dict[record_id])
             gender_true.append(record2labelgender_dict[record_id])
-        
+        """
+
         female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
         male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
 
