@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
+import fairseq
 
 class Wav2vec2BiEncoder(nn.Module):
     def __init__(self, upstream_model='wav2vec2',num_layers=6, feature_dim=768):
         super().__init__()
         self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
-        
+
         for param in self.upstream.parameters():
             param.requires_grad = True
        
@@ -53,6 +54,15 @@ class Wav2vec2BiEncoderAgeEstimation(nn.Module):
         super().__init__()
         self.upstream = torch.hub.load('s3prl/s3prl', upstream_model)
         
+        """
+        state_dict = torch.load('/home/project/12001458/ductuan0/SpeakerProfiling/libri960_basemodel_sre0810_finetune_48epoch.pt')['model']
+        new_state_dict = {}
+        for key in state_dict.keys():
+            new_state_dict['model.' + key] = state_dict[key]
+        del state_dict
+        self.upstream.load_state_dict(new_state_dict)
+        """
+
         for param in self.upstream.parameters():
             param.requires_grad = True
        
@@ -89,3 +99,4 @@ class Wav2vec2BiEncoderAgeEstimation(nn.Module):
         output = (1-gender)*xM + gender*xF
         age = self.age_regressor(output)
         return age, gender
+
