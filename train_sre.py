@@ -123,6 +123,7 @@ if __name__ == "__main__":
         dirpath='checkpoints',
         monitor='val/loss', 
         mode='min',
+        save_last=True,
         verbose=1)
 
     trainer = Trainer(
