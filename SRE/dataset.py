@@ -34,9 +34,9 @@ class SREDataset(Dataset):
         wav, f = torchaudio.load(wav_path)
         if(wav.shape[0] != 1):
             wav = torch.mean(wav, dim=0)
-            wav = self.resampleUp(wav)
             # wav = self.pad_crop_transform(wav)
 
+        wav = self.resampleUp(wav)
         age = (age - self.a_mean)/self.a_std
 
 
@@ -51,8 +51,9 @@ class SREDataset(Dataset):
 
             if(mixup_wav.shape[0] != 1):
                 mixup_wav = torch.mean(mixup_wav, dim=0) 
-                mixup_wav = self.resampleUp(mixup_wav)
                 # mixup_wav = self.pad_crop_transform(mixup_wav)
+
+            mixup_wav = self.resampleUp(mixup_wav)
 
             mixup_age = (mixup_age - self.a_mean)/self.a_std
             
