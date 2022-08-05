@@ -78,8 +78,6 @@ if __name__ == "__main__":
 
     csv_path = hparams.speaker_csv_path
     df = pd.read_csv(csv_path)
-    a_mean = df[df['Use'] == 'train']['age'].mean()
-    a_std = df[df['Use'] == 'train']['age'].std()
 
     #Testing the Model
     if hparams.model_checkpoint:
@@ -99,14 +97,12 @@ if __name__ == "__main__":
             x = x.to(device)
             y_a = torch.stack(y_a).reshape(-1,)
             y_g = torch.stack(y_g).reshape(-1,)
-            y_hat_a, y_hat_g = model(x, x_len)
+            y_hat_a = model(x, x_len)
             #y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
             #y_hat_h = y_hat_h.to('cpu')
             y_hat_a = y_hat_a.to('cpu')
-            y_hat_g = y_hat_g.to('cpu')
-            age_pred += [age.item() * a_std + a_mean for age in y_hat_a]
-            gender_pred += [gender.item() > 0.5 for gender in y_hat_g]
-            age_true += [age.item() * a_std + a_mean for age in y_a]
+            age_pred += [age.item() for age in y_hat_a]
+            age_true += [age.item() for age in y_a]
             gender_true += y_g.tolist()
         """
             for i, utt in enumerate(utt_id):
@@ -148,7 +144,5 @@ if __name__ == "__main__":
         amae = mean_absolute_error(age_true, age_pred)
         armse = mean_squared_error(age_true, age_pred, squared=False)
         print(armse, amae)
-        gender_pred_ = [int(pred == True) for pred in gender_pred]
-        print(accuracy_score(gender_true, gender_pred_))
     else:
         print('Model chekpoint not found for Testing !!!')

@@ -14,8 +14,6 @@ class SREDataset(Dataset):
         self.gender_dict = {'m' : 0, 'f' : 1}
         self.resampleUp = torchaudio.transforms.Resample(orig_freq=8000, new_freq=16000)
         self.is_train = is_train
-        self.a_mean = self.df_full[self.df_full['Use'] == 'train']['age'].mean()
-        self.a_std = self.df_full[self.df_full['Use'] == 'train']['age'].std()
         # self.pad_crop_transform = wavencoder.transforms.Compose([
         #         wavencoder.transforms.PadCrop(pad_crop_length=3*16000, pad_position='center', crop_position='center'),    
         #     ])
@@ -37,39 +35,5 @@ class SREDataset(Dataset):
             # wav = self.pad_crop_transform(wav)
 
         wav = self.resampleUp(wav)
-        age = (age - self.a_mean)/self.a_std
-
-
-        probability = 0.5
-        if self.is_train and random.random() <= probability:
-            mixup_idx = random.randint(0, len(self.df.index)-1)
-            mixup_wav_path = self.df.loc[mixup_idx, 'wav_path']
-            mixup_gender = self.gender_dict[self.df.loc[mixup_idx, 'Sex']]
-            mixup_age =  self.df.loc[mixup_idx, 'age']
-
-            mixup_wav, _ = torchaudio.load(mixup_wav_path)
-
-            if(mixup_wav.shape[0] != 1):
-                mixup_wav = torch.mean(mixup_wav, dim=0) 
-                # mixup_wav = self.pad_crop_transform(mixup_wav)
-
-            mixup_wav = self.resampleUp(mixup_wav)
-
-            mixup_age = (mixup_age - self.a_mean)/self.a_std
-            
-            if(mixup_wav.shape[1] < wav.shape[1]):
-                cnt = (wav.shape[1]+mixup_wav.shape[1]-1)//mixup_wav.shape[1]
-                mixup_wav = mixup_wav.repeat(1,cnt)[:,:wav.shape[1]]
-            
-            if(wav.shape[1] < mixup_wav.shape[1]):
-                cnt = (mixup_wav.shape[1]+wav.shape[1]-1)//wav.shape[1]
-                wav = wav.repeat(1,cnt)[:,:mixup_wav.shape[1]]
-            
-            alpha = 1
-            lam = np.random.beta(alpha, alpha)
-            
-            wav = lam*wav + (1-lam)*mixup_wav
-            age = lam*age + (1-lam)*mixup_age
-            gender = lam*gender + (1-lam)*mixup_gender
 
         return utt_id, wav, torch.FloatTensor([age]), torch.FloatTensor([gender])
