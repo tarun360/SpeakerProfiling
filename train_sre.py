@@ -121,7 +121,7 @@ if __name__ == "__main__":
     model = LightningModel(vars(hparams))
 
     model_checkpoint_callback = ModelCheckpoint(
-        dirpath='checkpoints/{}'.format(ModelConfig.run_name),
+        dirpath='checkpoints/{}'.format(hparams.run_name),
         monitor='val/loss', 
         mode='min',
         save_last=True,
