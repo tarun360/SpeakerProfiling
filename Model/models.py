@@ -20,7 +20,7 @@ class Wav2vec2BiEncoderAgeEstimation(nn.Module):
         self.fcM = nn.Linear(2*feature_dim, 1024)
         self.fcF = nn.Linear(2*feature_dim, 1024)
         
-        self.dropout = nn.Dropout(0.5)
+        self.dropout = nn.Dropout(0.1)
 
         self.age_regressor = nn.Linear(1024, 1)
         self.gender_classifier = nn.Sequential(
