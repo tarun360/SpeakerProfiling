@@ -7,7 +7,7 @@
     },
     "model_parameters": {
         "batch_size": "8",
-        "epochs": "150",
+        "epochs": "50",
         "lr": "1e-4",
         "model_type": "Wav2vec2BiEncoderAgeEstimation",
         "upstream_model": "wav2vec2_local",
