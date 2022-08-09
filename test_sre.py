@@ -18,7 +18,8 @@ import torch.nn.utils.rnn as rnn_utils
 from tqdm import tqdm 
 import pandas as pd
 import numpy as np
-from statistics import mean, mode
+from statistics import mean, mode 
+from collections import defaultdict
 
 
 def collate_fn(batch):
@@ -89,7 +90,7 @@ if __name__ == "__main__":
     ## Testing Dataloader
     testloader = data.DataLoader(
         test_set, 
-        batch_size=20,#hparams.batch_size, 
+        batch_size=hparams.batch_size, 
         shuffle=False, 
         num_workers=hparams.n_workers,
         collate_fn = collate_fn,
@@ -105,10 +106,10 @@ if __name__ == "__main__":
         model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
         model.to(device)
         model.eval()
-        record2predgender_dict = {}
-        record2predage_dict = {}
-        record2labelgender_dict = {}
-        record2labelage_dict = {}
+        record2predgender_dict = defaultdict(lambda: [], {})
+        record2predage_dict = defaultdict(lambda: [], {})
+        record2labelgender_dict = defaultdict(lambda: [], {})
+        record2labelage_dict = defaultdict(lambda: [], {})
         for batch in tqdm(testloader):
             utt_id, x, y_a, y_g, x_len = batch
             x = x.to(device)
@@ -123,12 +124,10 @@ if __name__ == "__main__":
             gender_true = y_g.tolist()
             for i, utt in enumerate(utt_id):
                 record_id = "_".join(utt.split("_")[:-2])
-                if record_id in record2predgender_dict.keys():
-                    record2predgender_dict[record_id].append(gender_pred[i])
-                    record2predage_dict[record_id].append(age_pred[i])
-                    record2labelgender_dict[record_id].append(gender_true[i])
-                    record2labelage_dict[record_id].append(age_true[i])
-
+                record2predgender_dict[record_id].append(gender_pred[i])
+                record2predage_dict[record_id].append(age_pred[i])
+                record2labelgender_dict[record_id].append(gender_true[i])
+                record2labelage_dict[record_id].append(age_true[i])
         segment_age_pred = []
         segment_gender_pred = []
         segment_age_true = []
@@ -140,15 +139,15 @@ if __name__ == "__main__":
         record_gender_true = []
         
         for record_id in record2predgender_dict.keys():
-            segment_age_pred.append(record2predage_dict[record_id])
-            segment_gender_pred.append(record2predgender_dict[record_id])
-            segment_age_true.append(record2labelage_dict[record_id])
-            segment_gender_true.append(record2labelgender_dict[record_id])
+            segment_age_pred += record2predage_dict[record_id]
+            segment_gender_pred += record2predgender_dict[record_id]
+            segment_age_true += record2labelage_dict[record_id]
+            segment_gender_true += record2labelgender_dict[record_id]
 
             record_age_pred.append(mean(record2predage_dict[record_id]))
-            record_gender_pred.append(mode(record2predgender_dict[record_id]))
+            record_gender_pred.append(np.argmax(np.bincount(np.array(record2predgender_dict[record_id]).astype(int))))
             record_age_true.append(mean(record2labelage_dict[record_id]))
-            record_gender_true.append(mode(record2labelgender_dict[record_id]))
+            record_gender_true.append(np.argmax(np.bincount(np.array(record2labelgender_dict[record_id]).astype(int))))
         print('--------- Result on long utterances ---------')
         calculate_error(record_age_pred, record_age_true, record_gender_pred, record_gender_true)
         print('--------- Result on short utterances ---------')

@@ -3,11 +3,11 @@
     "dataDir": {
         "dir": "",
         "data_path": "/home/project/12001458/ductuan0/ISCAP_Age_Estimation/data",
-        "speaker_csv_path": "/home/project/12001458/ductuan0/ISCAP_Age_Estimation/data/data_info_age.csv"
+        "speaker_csv_path": "Dataset/data_info_age.csv"
     },
     "model_parameters": {
         "batch_size": "8",
-        "epochs": "50",
+        "epochs": "100",
         "lr": "1e-4",
         "model_type": "Wav2vec2BiEncoderAgeEstimation",
         "upstream_model": "wav2vec2_local",
