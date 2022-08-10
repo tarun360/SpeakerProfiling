@@ -4,10 +4,8 @@ from argparse import ArgumentParser
 from multiprocessing import Pool
 import os
 
-from TIMIT.dataset import TIMITDataset
 from SRE.dataset import SREDataset
 
-#from TIMIT.lightning_model_uncertainty_loss import LightningModel
 from SRE.lightning_model_uncertainty_loss import LightningModel
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error, accuracy_score
@@ -20,7 +18,8 @@ import torch.nn.utils.rnn as rnn_utils
 from tqdm import tqdm 
 import pandas as pd
 import numpy as np
-from statistics import mean, mode
+from statistics import mean, mode 
+from collections import defaultdict
 
 
 def collate_fn(batch):
@@ -29,6 +28,25 @@ def collate_fn(batch):
     seq_length = [x.shape[0] for x in seql]
     data = rnn_utils.pad_sequence(seql, batch_first=True, padding_value=0)
     return utt_id, data, age, gender, seq_length
+
+def calculate_error(age_pred, age_true, gender_true):
+    age_true = np.array(age_true)
+    age_pred = np.array(age_pred)
+    
+    male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
+    female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
+
+    amae = mean_absolute_error(age_true[male_idx], age_pred[male_idx])
+    armse = mean_squared_error(age_true[male_idx], age_pred[male_idx], squared=False)
+    print(armse, amae)
+
+    amae = mean_absolute_error(age_true[female_idx], age_pred[female_idx])
+    armse = mean_squared_error(age_true[female_idx], age_pred[female_idx], squared=False)
+    print(armse, amae)
+    
+    amae = mean_absolute_error(age_true, age_pred)
+    armse = mean_squared_error(age_true, age_pred, squared=False)
+    print(armse, amae)
 
 if __name__ == "__main__":
 
@@ -70,7 +88,7 @@ if __name__ == "__main__":
     ## Testing Dataloader
     testloader = data.DataLoader(
         test_set, 
-        batch_size=20,#hparams.batch_size, 
+        batch_size=hparams.batch_size, 
         shuffle=False, 
         num_workers=hparams.n_workers,
         collate_fn = collate_fn,
@@ -78,71 +96,51 @@ if __name__ == "__main__":
 
     csv_path = hparams.speaker_csv_path
     df = pd.read_csv(csv_path)
+    a_mean = df[df['Use'] == 'train']['age'].mean()
+    a_std = df[df['Use'] == 'train']['age'].std()
 
     #Testing the Model
     if hparams.model_checkpoint:
         model = LightningModel.load_from_checkpoint(hparams.model_checkpoint, HPARAMS=vars(hparams))
         model.to(device)
         model.eval()
-        #record2predgender_dict = {}
-        #record2predage_dict = {}
-        #record2labelgender_dict = {}
-        #record2labelage_dict = {}
-        age_pred = []
-        gender_pred = []
-        age_true = []
-        gender_true = []
+        record2predage_dict = defaultdict(lambda: [], {})
+        record2labelgender_dict = defaultdict(lambda: [], {})
+        record2labelage_dict = defaultdict(lambda: [], {})
         for batch in tqdm(testloader):
             utt_id, x, y_a, y_g, x_len = batch
             x = x.to(device)
             y_a = torch.stack(y_a).reshape(-1,)
             y_g = torch.stack(y_g).reshape(-1,)
             y_hat_a = model(x, x_len)
-            #y_hat_h, y_hat_a, y_hat_g = model(x, x_len)
-            #y_hat_h = y_hat_h.to('cpu')
             y_hat_a = y_hat_a.to('cpu')
-            age_pred += [age.item() for age in y_hat_a]
-            age_true += [age.item() for age in y_a]
-            gender_true += y_g.tolist()
-        """
+            age_pred = [age.item() * a_std + a_mean for age in y_hat_a]
+            age_true = [age.item() * a_std + a_mean for age in y_a]
+            gender_true = y_g.tolist()
             for i, utt in enumerate(utt_id):
                 record_id = "_".join(utt.split("_")[:-2])
-                if record_id in record2predgender_dict.keys():
-                    record2predgender_dict[record_id].append(gender_pred[i])
-                    record2predage_dict[record_id].append(age_pred[i])
-                else:    
-                    record2predgender_dict[record_id] = [gender_pred[i]]
-                    record2predage_dict[record_id] = [age_pred[i]]
-                    record2labelgender_dict[record_id] = gender_true[i]
-                    record2labelage_dict[record_id] = age_true[i]
+                record2predage_dict[record_id].append(age_pred[i])
+                record2labelgender_dict[record_id].append(gender_true[i])
+                record2labelage_dict[record_id].append(age_true[i])
+        segment_age_pred = []
+        segment_age_true = []
+        segment_gender_true = []
         
-        age_pred = []
-        gender_pred = []
-        age_true = []
-        gender_true = []
+        record_age_pred = []
+        record_age_true = []
+        record_gender_true = []
+        
         for record_id in record2predgender_dict.keys():
-            age_pred.append(mean(record2predage_dict[record_id]))
-            gender_pred.append(mode(record2predgender_dict[record_id]))
-            age_true.append(record2labelage_dict[record_id])
-            gender_true.append(record2labelgender_dict[record_id])
-        """
+            segment_age_pred += record2predage_dict[record_id]
+            segment_age_true += record2labelage_dict[record_id]
+            segment_gender_true += record2labelgender_dict[record_id]
 
-        female_idx = np.where(np.array(gender_true) == 1)[0].reshape(-1).tolist()
-        male_idx = np.where(np.array(gender_true) == 0)[0].reshape(-1).tolist()
-
-        age_true = np.array(age_true)
-        age_pred = np.array(age_pred)
-
-        amae = mean_absolute_error(age_true[male_idx], age_pred[male_idx])
-        armse = mean_squared_error(age_true[male_idx], age_pred[male_idx], squared=False)
-        print(armse, amae)
-
-        amae = mean_absolute_error(age_true[female_idx], age_pred[female_idx])
-        armse = mean_squared_error(age_true[female_idx], age_pred[female_idx], squared=False)
-        print(armse, amae)
-        
-        amae = mean_absolute_error(age_true, age_pred)
-        armse = mean_squared_error(age_true, age_pred, squared=False)
-        print(armse, amae)
+            record_age_pred.append(mean(record2predage_dict[record_id]))
+            record_age_true.append(mean(record2labelage_dict[record_id]))
+            record_gender_true.append(np.argmax(np.bincount(np.array(record2labelgender_dict[record_id]).astype(int))))
+        print('--------- Result on long utterances ---------')
+        calculate_error(record_age_pred, record_age_true, record_gender_true)
+        print('--------- Result on short utterances ---------')
+        calculate_error(segment_age_pred, segment_age_true, segment_gender_true)
     else:
         print('Model chekpoint not found for Testing !!!')

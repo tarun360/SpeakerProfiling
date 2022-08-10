@@ -33,6 +33,8 @@ class LightningModel(pl.LightningModule):
         self.lr = HPARAMS['lr']
 
         self.df = pd.read_csv(HPARAMS['speaker_csv_path'])
+        self.a_mean = self.df[self.df['Use'] == 'train']['age'].mean()
+        self.a_std = self.df[self.df['Use'] == 'train']['age'].std()
 
         print(f"Model Details: #Params = {self.count_total_parameters()}\t#Trainable Params = {self.count_trainable_parameters()}")
 
@@ -60,7 +62,7 @@ class LightningModel(pl.LightningModule):
 
         loss = self.rmse_criterion(y_hat_a,y_a)
 
-        age_mae =self.mae_criterion(y_hat_a, y_a)
+        age_mae = self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
 
         return {'loss':loss, 
                 'train_age_mae':age_mae.item(),
@@ -84,8 +86,7 @@ class LightningModel(pl.LightningModule):
         y_hat_a = y_hat_a.view(-1).float()
 
         loss = self.rmse_criterion(y_hat_a,y_a)
-
-        age_mae = self.mae_criterion(y_hat_a, y_a)
+        age_mae =self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
 
         return {
                 'val_loss':loss, 
@@ -112,11 +113,11 @@ class LightningModel(pl.LightningModule):
         female_idx = torch.nonzero(idx).view(-1)
         male_idx = torch.nonzero(1-idx).view(-1)
 
-        male_age_mae = self.mae_criterion(y_hat_a[male_idx], y_a[male_idx])
-        female_age_mae = self.mae_criterion(y_hat_a[female_idx], y_a[female_idx])
+        male_age_mae = self.mae_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean)
+        female_age_mae = self.mae_criterion(y_hat_a[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean)
 
-        male_age_rmse = self.rmse_criterion(y_hat_a[male_idx], y_a[male_idx])
-        female_age_rmse = self.rmse_criterion(y_hat_a[female_idx], y_a[female_idx])
+        male_age_rmse = self.rmse_criterion(y_hat_a[male_idx]*self.a_std+self.a_mean, y_a[male_idx]*self.a_std+self.a_mean)
+        female_age_rmse = self.rmse_criterion(y_hat_a[female_idx]*self.a_std+self.a_mean, y_a[female_idx]*self.a_std+self.a_mean)
 
         return {
                 'male_age_mae':male_age_mae.item(),
