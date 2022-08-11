@@ -62,7 +62,7 @@ class LightningModel(pl.LightningModule):
         y_a, y_g = y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_a, y_hat_g = y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
 
-        loss = self.uncertainty_loss(torch.cat((y_hat_a, y_hat_g)), torch.cat((y_a, y_g)))
+        loss, mse_loss = self.uncertainty_loss(torch.cat((y_hat_a, y_hat_g)), torch.cat((y_a, y_g)))
 
         age_mae =self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
@@ -91,7 +91,7 @@ class LightningModel(pl.LightningModule):
         y_a, y_g = y_a.view(-1).float(), y_g.view(-1).float()
         y_hat_a, y_hat_g = y_hat_a.view(-1).float(), y_hat_g.view(-1).float()
 
-        loss = self.uncertainty_loss(torch.cat((y_hat_a, y_hat_g)), torch.cat((y_a, y_g)))
+        loss, mse_loss = self.uncertainty_loss(torch.cat((y_hat_a, y_hat_g)), torch.cat((y_a, y_g)))
 
         age_mae = self.mae_criterion(y_hat_a*self.a_std+self.a_mean, y_a*self.a_std+self.a_mean)
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
