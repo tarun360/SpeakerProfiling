@@ -18,7 +18,7 @@ import torch.nn.utils.rnn as rnn_utils
 from tqdm import tqdm 
 import pandas as pd
 import numpy as np
-from statistics import mean, mode 
+from statistics import mean, mode, median 
 from collections import defaultdict
 
 
@@ -144,9 +144,9 @@ if __name__ == "__main__":
             segment_age_true += record2labelage_dict[record_id]
             segment_gender_true += record2labelgender_dict[record_id]
 
-            record_age_pred.append(mean(record2predage_dict[record_id]))
+            record_age_pred.append(median(record2predage_dict[record_id]))
             record_gender_pred.append(np.argmax(np.bincount(np.array(record2predgender_dict[record_id]).astype(int))))
-            record_age_true.append(mean(record2labelage_dict[record_id]))
+            record_age_true.append(median(record2labelage_dict[record_id]))
             record_gender_true.append(np.argmax(np.bincount(np.array(record2labelgender_dict[record_id]).astype(int))))
         print('--------- Result on long utterances ---------')
         calculate_error(record_age_pred, record_age_true, record_gender_pred, record_gender_true)
