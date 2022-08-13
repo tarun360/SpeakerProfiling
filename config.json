@@ -8,7 +8,7 @@
     "model_parameters": {
         "batch_size": "8",
         "epochs": "100",
-        "lr": "1e-5",
+        "lr": "1e-6",
         "model_type": "Wav2vec2BiEncoderAgeEstimation",
         "upstream_model": "wav2vec2_local",
         "_comment": "upstream model to be loaded from s3prl. Some of the upstream models are: wav2vec2, hubert, TERA, mockingjay",
