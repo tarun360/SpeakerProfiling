@@ -4,7 +4,7 @@ import fairseq
 from functools import partial
 
 class Wav2vec2BiEncoderAgeEstimation(nn.Module):
-    def __init__(self, upstream_model='wav2vec2_local',num_layers=6, feature_dim=768):
+    def __init__(self, upstream_model='wav2vec2_local',num_layers=8, feature_dim=768):
         super().__init__()
         self.upstream = torch.hub.load('s3prl/s3prl', upstream_model, ckpt='/home/project/12001458/ductuan0/ISCAP_Age_Estimation/libri960_basemodel_sre0810_finetune_48epoch.pt')
         

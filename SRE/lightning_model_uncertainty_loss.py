@@ -97,7 +97,7 @@ class LightningModel(pl.LightningModule):
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
         return {
-                'val_loss':loss, 
+                'val_loss':mse_loss, 
                 'val_age_mae':age_mae.item(),
                 'val_gender_acc':gender_acc
                 }

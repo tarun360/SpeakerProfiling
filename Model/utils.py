@@ -33,7 +33,7 @@ class UncertaintyLossAG(Module):
         self.loss_age = mse_loss(input=age_pred, target=age_target)
         self.loss_age_var = torch.exp(-self.log_var_age) * self.loss_age + self.log_var_age
 
-        self.loss = self.loss_gender + self.loss_age
+        self.loss = self.loss_age
 
         self.loss_var = self.loss_gender_var + self.loss_age_var
 
