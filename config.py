@@ -28,7 +28,7 @@ class ModelConfig(object):
     upstream_model = config['model_parameters']['upstream_model']
 
     # number of layers in encoder (transformers)
-    num_layers = 8
+    num_layers = 6
 
     # feature dimension of upstream model. For example, 
     # For wav2vec2, feature_dim = 768

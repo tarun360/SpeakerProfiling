@@ -4,7 +4,7 @@ import fairseq
 from functools import partial
 
 class Wav2vec2BiEncoderAgeEstimation(nn.Module):
-    def __init__(self, upstream_model='wav2vec2_local',num_layers=8, feature_dim=768):
+    def __init__(self, upstream_model='wav2vec2_local',num_layers=6, feature_dim=768):
         super().__init__()
         self.upstream = torch.hub.load('s3prl/s3prl', upstream_model, ckpt='/home/project/12001458/ductuan0/ISCAP_Age_Estimation/libri960_basemodel_sre0810_finetune_48epoch.pt')
         
@@ -19,8 +19,9 @@ class Wav2vec2BiEncoderAgeEstimation(nn.Module):
         
         self.fcM = nn.Linear(2*feature_dim, 1024)
         self.fcF = nn.Linear(2*feature_dim, 1024)
+        self.fc_age = nn.Linear(1024, 512)
         
-        self.age_regressor = nn.Linear(1024, 1)
+        self.age_regressor = nn.Linear(512, 1)
         self.gender_classifier = nn.Sequential(
             nn.Linear(2*1024, 1),
             nn.Sigmoid()
@@ -42,6 +43,7 @@ class Wav2vec2BiEncoderAgeEstimation(nn.Module):
         xF = self.fcF(xF)
         gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
         output = (1-gender)*xM + gender*xF
+        output = self.fc_age(output)
         age = self.age_regressor(output)
         return age, gender
 
