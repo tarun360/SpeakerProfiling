@@ -97,7 +97,7 @@ class LightningModel(pl.LightningModule):
         gender_acc = self.accuracy((y_hat_g>0.5).long(), y_g.long())
 
         return {
-                'val_loss':mse_loss, 
+                'val_loss':age_mae.item(), 
                 'val_age_mae':age_mae.item(),
                 'val_gender_acc':gender_acc
                 }
@@ -108,7 +108,7 @@ class LightningModel(pl.LightningModule):
         age_mae = torch.tensor([x['val_age_mae'] for x in outputs]).sum()/n_batch
         gender_acc = torch.tensor([x['val_gender_acc'] for x in outputs]).mean()
         
-        self.log('val/loss' , val_loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('val/loss' , age_mae.item(), on_step=False, on_epoch=True, prog_bar=True)
         self.log('val/a',age_mae.item(), on_step=False, on_epoch=True, prog_bar=True)
         self.log('val/g',gender_acc, on_step=False, on_epoch=True, prog_bar=True)
 
