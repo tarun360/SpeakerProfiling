@@ -19,9 +19,10 @@ class Wav2vec2BiEncoderAgeEstimation(nn.Module):
         
         self.fcM = nn.Linear(2*feature_dim, 1024)
         self.fcF = nn.Linear(2*feature_dim, 1024)
-        self.fc_age = nn.Linear(1024, 512)
         
-        self.age_regressor = nn.Linear(512, 1)
+        self.dropout = nn.Dropout(0.5)
+
+        self.age_regressor = nn.Linear(1024, 1)
         self.gender_classifier = nn.Sequential(
             nn.Linear(2*1024, 1),
             nn.Sigmoid()
@@ -37,13 +38,12 @@ class Wav2vec2BiEncoderAgeEstimation(nn.Module):
                 break
         xM = self.transformer_encoder_M(x)
         xF = self.transformer_encoder_F(x)
-        xM = torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1)
-        xF = torch.cat((torch.mean(xF, dim=1), torch.std(xF, dim=1)), dim=1)
-        xM = self.fcM(xM)
-        xF = self.fcF(xF)
+        xM = self.dropout(torch.cat((torch.mean(xM, dim=1), torch.std(xM, dim=1)), dim=1))
+        xF = self.dropout(torch.cat((torch.mean(xF, dim=1), torch.std(xF, dim=1)), dim=1))
+        xM = self.dropout(self.fcM(xM))
+        xF = self.dropout(self.fcF(xF))
         gender = self.gender_classifier(torch.cat((xM, xF), dim=1))
         output = (1-gender)*xM + gender*xF
-        output = self.fc_age(output)
         age = self.age_regressor(output)
         return age, gender
 
